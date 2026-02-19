@@ -8,6 +8,151 @@ import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankD
 // Replace these with your actual Supabase + Gmail API calls
 // ─────────────────────────────────────────────────────────────────────────────
 
+function OnboardingScreen({ user, onComplete }) {
+  const [form, setForm] = useState({
+    consultantId: "", pan: "", gstin: "",
+    bankBeneficiary: "", bankName: "", bankAccount: "", bankIfsc: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit() {
+    if (!form.consultantId || !form.pan || !form.bankBeneficiary || !form.bankName || !form.bankAccount || !form.bankIfsc) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("consultants")
+        .update({
+          consultant_id: form.consultantId,
+          pan: form.pan,
+          gstin: form.gstin,
+          bank_beneficiary: form.bankBeneficiary,
+          bank_name: form.bankName,
+          bank_account: form.bankAccount,
+          bank_ifsc: form.bankIfsc,
+        })
+        .eq("email", user.email);
+
+      if (error) throw error;
+      onComplete({
+        ...user,
+        consultant_id: form.consultantId,
+        pan: form.pan,
+        gstin: form.gstin,
+        bank_beneficiary: form.bankBeneficiary,
+        bank_name: form.bankName,
+        bank_account: form.bankAccount,
+        bank_ifsc: form.bankIfsc,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+    setSaving(false);
+  }
+
+  const fields = [
+    { label: "Consultant ID *", key: "consultantId", placeholder: "e.g. C0096" },
+    { label: "PAN *", key: "pan", placeholder: "e.g. ABCDE1234F" },
+    { label: "GSTIN (optional)", key: "gstin", placeholder: "Leave blank if not applicable" },
+    { label: "Beneficiary Name *", key: "bankBeneficiary", placeholder: "As per bank records" },
+    { label: "Bank Name *", key: "bankName", placeholder: "e.g. State Bank of India" },
+    { label: "Account Number *", key: "bankAccount", placeholder: "Your account number" },
+    { label: "IFSC Code *", key: "bankIfsc", placeholder: "e.g. SBIN0010913" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.white, display: "flex", ...sans }}>
+      {/* Left black panel */}
+      <div style={{ width: "360px", background: C.black, padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "28px", height: "28px", background: C.orange, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: C.white, fontSize: "10px", fontWeight: "700", ...mono }}>NG</span>
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>Invoice Portal</span>
+        </div>
+        <div>
+          <div style={{ fontSize: "36px", ...serif, color: C.white, lineHeight: "1.2", marginBottom: "16px" }}>
+            One-time<br />setup.
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.7" }}>
+            We need a few details to generate your invoices correctly. You only need to do this once.
+          </div>
+        </div>
+        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", ...mono }}>
+          Logged in as {user.email}
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div style={{ flex: 1, padding: "48px", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+        <div style={{ width: "100%", maxWidth: "480px" }}>
+          <div style={{ fontSize: "26px", ...serif, color: C.black, marginBottom: "6px" }}>Complete your profile</div>
+          <div style={{ fontSize: "13px", color: C.gray500, marginBottom: "32px" }}>These details will appear on every invoice you generate.</div>
+
+          {/* Two sections */}
+          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Consultant Details</div>
+
+          {fields.slice(0, 3).map(({ label, key, placeholder }) => (
+            <div key={key} style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
+              <input
+                type="text"
+                placeholder={placeholder}
+                value={form[key]}
+                onChange={e => setForm({ ...form, [key]: e.target.value })}
+                style={{
+                  width: "100%", padding: "10px 12px",
+                  border: `1px solid ${C.gray300}`, borderRadius: "7px",
+                  fontSize: "13px", color: C.black, ...mono,
+                  boxSizing: "border-box", background: C.white,
+                }}
+                onFocus={e => e.target.style.borderColor = C.orange}
+                onBlur={e => e.target.style.borderColor = C.gray300}
+              />
+            </div>
+          ))}
+
+          <HR my={20} />
+          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Bank Details</div>
+
+          {fields.slice(3).map(({ label, key, placeholder }) => (
+            <div key={key} style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
+              <input
+                type="text"
+                placeholder={placeholder}
+                value={form[key]}
+                onChange={e => setForm({ ...form, [key]: e.target.value })}
+                style={{
+                  width: "100%", padding: "10px 12px",
+                  border: `1px solid ${C.gray300}`, borderRadius: "7px",
+                  fontSize: "13px", color: C.black, ...mono,
+                  boxSizing: "border-box", background: C.white,
+                }}
+                onFocus={e => e.target.style.borderColor = C.orange}
+                onBlur={e => e.target.style.borderColor = C.gray300}
+              />
+            </div>
+          ))}
+
+          {error && (
+            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "7px", padding: "12px 14px", color: C.red, fontSize: "13px", marginBottom: "16px" }}>
+              {error}
+            </div>
+          )}
+
+          <OrangeBtn onClick={handleSubmit} disabled={saving} full>
+            {saving ? "Saving..." : "Save & Continue →"}
+          </OrangeBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA
@@ -818,7 +963,11 @@ export default function App() {
           setUser(consultant);
           const inv = await fetchInvoices();
           setInvoices(inv);
-          setScreen("dashboard");
+          if (!consultant.consultant_id) {
+            setScreen("onboarding");
+          } else {
+            setScreen("dashboard");
+          }
         }
         if (event === "SIGNED_OUT") {
           setUser(null);
@@ -855,19 +1004,21 @@ export default function App() {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F8F8; }
-        input { outline: none; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-      `}</style>
+      <style>{`...`}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
 
-      {screen !== "login" && (
+      {screen === "onboarding" && (
+        <OnboardingScreen
+          user={user}
+          onComplete={(updatedUser) => {
+            setUser(updatedUser);
+            setScreen("dashboard");
+          }}
+        />
+      )}
+
+      {screen !== "login" && screen !== "onboarding" && (
         <div style={{ minHeight: "100vh", background: C.white }}>
           <Topbar
             user={user}
@@ -893,5 +1044,5 @@ export default function App() {
         </div>
       )}
     </>
-  );
-}
+  )
+};
