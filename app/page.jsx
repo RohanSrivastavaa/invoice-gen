@@ -795,12 +795,14 @@ export default function App() {
       if (session) {
         try {
           const consultant = await fetchConsultant();
-          setUser(consultant);
-          const inv = await fetchInvoices();
-          setInvoices(inv);
-          setScreen("dashboard");
+          if (consultant) {
+            setUser(consultant);
+            const inv = await fetchInvoices();
+            setInvoices(inv);
+            setScreen("dashboard");
+          }
         } catch (err) {
-          console.error("Session load error:", err);
+          console.error("Session restore error:", err);
         }
       }
     }
