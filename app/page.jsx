@@ -365,13 +365,15 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin }) {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
         {user && <span style={{ fontSize: "12px", color: C.gray500, ...mono }}>{user.consultantId}</span>}
-        <button onClick={onToggleAdmin} style={{
-          fontSize: "11px", color: C.gray500, background: "none",
-          border: `1px solid ${C.gray300}`, borderRadius: "5px",
-          padding: "5px 10px", cursor: "pointer", ...mono,
-        }}>
-          {isAdmin ? "← Consultant view" : "Admin →"}
-        </button>
+        {user?.is_admin && (
+          <button onClick={onToggleAdmin} style={{
+            fontSize: "11px", color: C.gray500, background: "none",
+            border: `1px solid ${C.gray300}`, borderRadius: "5px",
+            padding: "5px 10px", cursor: "pointer", ...mono,
+          }}>
+            {isAdmin ? "← Consultant view" : "Admin →"}
+          </button>
+        )}
         {user && (
           <button onClick={onProfile} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             <div style={{ width: "32px", height: "32px", background: C.orange, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
