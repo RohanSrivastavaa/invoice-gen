@@ -10,15 +10,15 @@ import {
 
 function toWords(n) {
   if (n === 0) return "Zero";
-  const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
-    "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
-  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
   if (n < 20) return ones[n];
-  if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? " "+ones[n%10] : "");
-  if (n < 1000) return ones[Math.floor(n/100)]+" Hundred"+(n%100?" "+toWords(n%100):"");
-  if (n < 100000) return toWords(Math.floor(n/1000))+" Thousand"+(n%1000?" "+toWords(n%1000):"");
-  if (n < 10000000) return toWords(Math.floor(n/100000))+" Lakh"+(n%100000?" "+toWords(n%100000):"");
-  return toWords(Math.floor(n/10000000))+" Crore"+(n%10000000?" "+toWords(n%10000000):"");
+  if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
+  if (n < 1000) return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " + toWords(n % 100) : "");
+  if (n < 100000) return toWords(Math.floor(n / 1000)) + " Thousand" + (n % 1000 ? " " + toWords(n % 1000) : "");
+  if (n < 10000000) return toWords(Math.floor(n / 100000)) + " Lakh" + (n % 100000 ? " " + toWords(n % 100000) : "");
+  return toWords(Math.floor(n / 10000000)) + " Crore" + (n % 10000000 ? " " + toWords(n % 10000000) : "");
 }
 
 const inr = n => "Rs. " + Number(n).toLocaleString("en-IN");
@@ -30,24 +30,24 @@ const calcNet = inv =>
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
+    fontSize: 9,
     color: "#111111",
-    paddingTop: 48,
-    paddingBottom: 48,
-    paddingLeft: 52,
-    paddingRight: 52,
+    paddingTop: 32,
+    paddingBottom: 32,
+    paddingLeft: 44,
+    paddingRight: 44,
     backgroundColor: "#FFFFFF",
   },
 
   // Header
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
-  invoiceTitle: { fontSize: 28, fontFamily: "Helvetica-Bold", letterSpacing: -0.5, color: "#111111" },
+  invoiceTitle: { fontSize: 22, fontFamily: "Helvetica-Bold", letterSpacing: -0.5, color: "#111111" },
   invoiceNo: { fontSize: 10, color: "#777777", marginTop: 4, fontFamily: "Courier" },
   periodBadge: { backgroundColor: "#E85D04", color: "#FFFFFF", borderRadius: 4, paddingVertical: 4, paddingHorizontal: 10, fontSize: 10, fontFamily: "Helvetica-Bold", textAlign: "center" },
   periodLabel: { fontSize: 9, color: "#777777", marginTop: 4, textAlign: "right" },
 
   // Divider
-  divider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 16 },
+  divider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 12 },
   dividerDark: { height: 2, backgroundColor: "#111111", marginBottom: 8 },
 
   // Two-col layout
@@ -61,7 +61,7 @@ const s = StyleSheet.create({
   monoValue: { fontSize: 10, fontFamily: "Courier" },
 
   // Service days box
-  daysBox: { backgroundColor: "#F8F8F8", borderWidth: 1, borderColor: "#F0F0F0", borderRadius: 4, padding: 14, marginBottom: 20 },
+  daysBox: { backgroundColor: "#F8F8F8", borderWidth: 1, borderColor: "#F0F0F0", borderRadius: 4, padding: 10, marginBottom: 14 },
   daysRow: { flexDirection: "row" },
   dayCell: { flex: 1, alignItems: "center" },
   dayNumber: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#111111" },
@@ -70,7 +70,7 @@ const s = StyleSheet.create({
   // Table
   tableHeader: { flexDirection: "row", borderBottomWidth: 2, borderBottomColor: "#111111", paddingBottom: 6, marginBottom: 2 },
   tableHeaderText: { fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 1, color: "#777777", textTransform: "uppercase" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#F0F0F0", paddingVertical: 8 },
+  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#F0F0F0", paddingVertical: 6 },
   tableCell: { flex: 1, fontSize: 10, color: "#444444" },
   tableCellRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: "#444444" },
   tableCellBold: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold" },
@@ -79,7 +79,7 @@ const s = StyleSheet.create({
   tableCellRedRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: "#DC2626" },
 
   // Net payable bar
-  netBar: { backgroundColor: "#111111", borderRadius: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, marginBottom: 6 },
+  netBar: { backgroundColor: "#111111", borderRadius: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginBottom: 4 },
   netLabel: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#FFFFFF" },
   netAmount: { fontSize: 16, fontFamily: "Courier-Bold", color: "#FFFFFF" },
   netWords: { fontSize: 9, color: "#777777", fontStyle: "italic", marginBottom: 20 },
@@ -93,9 +93,7 @@ const s = StyleSheet.create({
   signatureLine: { width: 150, borderBottomWidth: 1, borderBottomColor: "#CCCCCC", paddingBottom: 40 },
   signatureLabel: { fontSize: 8, color: "#777777", marginTop: 6, textAlign: "center" },
 
-  // Footer
-  footer: { position: "absolute", bottom: 24, left: 52, right: 52 },
-  footerText: { fontSize: 8, color: "#CCCCCC", textAlign: "center" },
+
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -107,9 +105,9 @@ export function InvoicePDF({ invoice, consultant, company }) {
   // Use CSV bank details if present, otherwise fall back to consultant's saved details
   const bank = {
     beneficiaryName: invoice.bank_beneficiary || consultant.bank_beneficiary,
-    bankName:        invoice.bank_name        || consultant.bank_name,
-    accountNumber:   invoice.bank_account     || consultant.bank_account,
-    ifscCode:        invoice.bank_ifsc        || consultant.bank_ifsc,
+    bankName: invoice.bank_name || consultant.bank_name,
+    accountNumber: invoice.bank_account || consultant.bank_account,
+    ifscCode: invoice.bank_ifsc || consultant.bank_ifsc,
   };
 
   return (
@@ -151,9 +149,9 @@ export function InvoicePDF({ invoice, consultant, company }) {
           <Text style={[s.sectionLabel, { marginBottom: 12 }]}>Service Days Summary</Text>
           <View style={s.daysRow}>
             {[
-              ["Total Days",       invoice.total_days],
-              ["Working Days",     invoice.working_days],
-              ["LOP Days",         invoice.lop_days],
+              ["Total Days", invoice.total_days],
+              ["Working Days", invoice.working_days],
+              ["LOP Days", invoice.lop_days],
               ["Net Payable Days", invoice.net_payable_days],
             ].map(([label, value]) => (
               <View key={label} style={s.dayCell}>
@@ -172,9 +170,9 @@ export function InvoicePDF({ invoice, consultant, company }) {
         </View>
 
         {[
-          ["Professional Fee",             invoice.professional_fee, false, false],
-          ["Incentive",                    invoice.incentive,        false, false],
-          ["Variable / Bonus / Referral",  invoice.variable,         false, false],
+          ["Professional Fee", invoice.professional_fee, false, false],
+          ["Incentive", invoice.incentive, false, false],
+          ["Variable / Bonus / Referral", invoice.variable, false, false],
         ].map(([label, val]) => (
           <View key={label} style={s.tableRow}>
             <Text style={s.tableCell}>{label}</Text>
@@ -211,9 +209,9 @@ export function InvoicePDF({ invoice, consultant, company }) {
         <View style={s.bankGrid}>
           {[
             ["Beneficiary Name", bank.beneficiaryName],
-            ["Bank Name",        bank.bankName],
-            ["Account Number",   bank.accountNumber],
-            ["IFSC Code",        bank.ifscCode],
+            ["Bank Name", bank.bankName],
+            ["Account Number", bank.accountNumber],
+            ["IFSC Code", bank.ifscCode],
           ].map(([label, value]) => (
             <View key={label} style={s.bankCell}>
               <Text style={s.fieldLabel}>{label}</Text>
@@ -230,12 +228,7 @@ export function InvoicePDF({ invoice, consultant, company }) {
           </View>
         </View>
 
-        {/* ── Footer ── */}
-        <View style={s.footer}>
-          <Text style={s.footerText}>
-            {company.name}  ·  Generated via Invoice Portal  ·  {invoice.invoice_no}
-          </Text>
-        </View>
+
 
       </Page>
     </Document>

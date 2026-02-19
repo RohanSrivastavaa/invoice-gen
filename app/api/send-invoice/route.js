@@ -93,7 +93,7 @@ export async function POST(request) {
     const emailBody = [
       `To: ${COMPANY.financeEmail}`,
       `From: ${consultant.name} <${consultant.email}>`,
-      `Subject: Invoice ${invoice.invoice_no} – ${consultant.name} – ${invoice.billing_period}`,
+      `Subject: Invoice ${invoice.invoice_no} - ${consultant.name} - ${invoice.billing_period}`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/mixed; boundary="${boundary}"`,
       ``,
@@ -143,7 +143,7 @@ export async function POST(request) {
     if (!gmailResponse.ok) {
       const gmailError = await gmailResponse.json();
       console.error("Gmail API error:", gmailError);
-      
+
       // Mark invoice as error in DB
       await supabaseAdmin
         .from("invoices")
