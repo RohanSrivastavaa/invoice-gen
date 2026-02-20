@@ -1,9 +1,7 @@
 // app/auth/callback/route.js
-// Google redirects here after OAuth login.
-// Supabase exchanges the code for a session, then we redirect to the dashboard.
-
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function GET(request) {
   const requestUrl = new URL(request.url);
@@ -11,16 +9,23 @@ export async function GET(request) {
   const origin = requestUrl.origin;
 
   if (code) {
-    const supabase = createClient(
+    const cookieStore = cookies();
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
     );
-
-    // Exchange the code for a session
-    // This also triggers the handle_new_user DB trigger if first login
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Redirect to dashboard after successful login
   return NextResponse.redirect(`${origin}/`);
 }
