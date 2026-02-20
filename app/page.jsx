@@ -627,18 +627,24 @@ export default function App() {
     async function loadUser(session) {
       try {
         console.log("loadUser started:", session?.user?.email);
-        // Pass email directly — avoids calling getSession() inside auth callbacks (causes deadlock)
         const consultant = await fetchConsultant(session.user.email);
         console.log("consultant fetched:", consultant);
+
         if (!mounted) return;
+
         if (consultant) {
           setUser(consultant);
           const inv = await fetchInvoices();
+
           if (!mounted) return;
+
           setInvoices(inv);
           setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
         } else {
-          setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
+          setUser({
+            email: session.user.email,
+            name: session.user.user_metadata?.full_name || session.user.email
+          });
           setScreen("onboarding");
         }
       } catch (err) {
@@ -649,27 +655,34 @@ export default function App() {
       }
     }
 
-    // getSession reads directly from localStorage — safe to call on mount/refresh
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("getSession result:", session?.user?.email);
-      if (session) {
-        loadUser(session);
-      } else {
-        if (mounted) { setScreen("login"); setLoading(false); }
-      }
-    });
-
-    // onAuthStateChange handles login/logout after initial load
-    // Note: we only handle SIGNED_IN and SIGNED_OUT here to avoid double-loading
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listen to Supabase auth events as the single source of truth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("auth event:", event, session?.user?.email);
-      if (event === "SIGNED_IN") await loadUser(session);
-      if (event === "SIGNED_OUT" && mounted) {
-        setUser(null); setInvoices([]); setScreen("login"); setLoading(false);
+
+      // INITIAL_SESSION fires immediately on load, grabbing the stored session
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        if (session) {
+          loadUser(session);
+        } else {
+          if (mounted) {
+            setScreen("login");
+            setLoading(false);
+          }
+        }
+      } else if (event === "SIGNED_OUT") {
+        if (mounted) {
+          setUser(null);
+          setInvoices([]);
+          setScreen("login");
+          setLoading(false);
+        }
       }
     });
 
-    return () => { mounted = false; subscription.unsubscribe(); };
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function handleLogin() {
