@@ -329,6 +329,19 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin }) {
             {isAdmin ? "← Consultant view" : "Admin →"}
           </button>
         )}
+
+        <button
+          onClick={onToggleDark}
+          title="Toggle dark mode"
+          style={{
+            background: "none", border: `1px solid ${C.gray300}`,
+            borderRadius: "5px", padding: "5px 10px",
+            cursor: "pointer", fontSize: "13px", lineHeight: 1,
+          }}
+        >
+          {darkMode ? "☀️" : "🌙"}
+        </button>
+
         {user && (
           <button onClick={onProfile} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             <div style={{ width: "32px", height: "32px", background: C.orange, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -697,10 +710,11 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-
+    document.body.classList.toggle("dark", darkMode);
     async function loadUser(session) {
       try {
         console.log("loadUser started:", session?.user?.email);
@@ -742,7 +756,7 @@ export default function App() {
     });
 
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, []);
+  }, [darkMode]);
 
   async function handleLogin() {
     try { await signInWithGoogle(); } catch (err) { console.error("Login error:", err); }
@@ -777,28 +791,16 @@ export default function App() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F8F8; }
-        input { outline: none; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        
-        @media print {
-          body * { visibility: hidden !important; }
-          #invoice-document, #invoice-document * { visibility: visible !important; }
-          #invoice-document {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-        }
-      `}</style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  input { outline: none; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  body.dark { background: #111; filter: invert(1) hue-rotate(180deg); }
+  body.dark img, body.dark [style*="background: #E85D04"], body.dark [style*="background:#E85D04"] { filter: invert(1) hue-rotate(180deg); }
+`}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
 
@@ -808,7 +810,8 @@ export default function App() {
 
       {screen !== "login" && screen !== "onboarding" && (
         <div style={{ minHeight: "100vh", background: C.white }}>
-          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); setScreen("dashboard"); }} />
+          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); setScreen("dashboard"); }} darkMode={darkMode}
+            onToggleDark={() => setDarkMode(d => !d)} />
           {isAdmin
             ? <AdminScreen />
             : screen === "dashboard"
