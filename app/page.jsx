@@ -913,15 +913,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadUser(session) {
       try {
-        console.log("loadUser started, session:", session?.user?.email);
+        console.log("loadUser started:", session?.user?.email);
         const consultant = await fetchConsultant();
-        console.log("consultant fetched:", consultant);
+        if (!mounted) return;
         if (consultant) {
           setUser(consultant);
           const inv = await fetchInvoices();
-          console.log("invoices fetched:", inv);
+          if (!mounted) return;
           setInvoices(inv);
           setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
         } else {
@@ -933,31 +935,50 @@ export default function App() {
         }
       } catch (err) {
         console.error("Load user error:", err);
-        setScreen("login");
+        if (mounted) setScreen("login");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
 
-    // Use only onAuthStateChange — fires on initial load (INITIAL_SESSION)
-    // AND on sign in/out. No need for a separate checkSession call.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("auth event:", event, session?.user?.email);
-        if (session) {
-          await loadUser(session);
-        } else {
-          setUser(null);
-          setInvoices([]);
+    // Check session immediately on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("getSession result:", session?.user?.email);
+      if (session) {
+        loadUser(session);
+      } else {
+        if (mounted) {
           setScreen("login");
           setLoading(false);
         }
       }
+    });
+
+    // Also listen for future auth changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("auth event:", event, session?.user?.email);
+        // Only handle SIGNED_IN and SIGNED_OUT, not INITIAL_SESSION
+        // to avoid double-loading
+        if (event === "SIGNED_IN") {
+          await loadUser(session);
+        }
+        if (event === "SIGNED_OUT") {
+          if (mounted) {
+            setUser(null);
+            setInvoices([]);
+            setScreen("login");
+            setLoading(false);
+          }
+        }
+      }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
-
   async function handleLogin() {
     try {
       await signInWithGoogle();
