@@ -374,7 +374,7 @@ function Dashboard({ user, invoices, onOpen }) {
         )}
         {list.map(inv => {
           const net = calcNet(inv);
-          const clickable = inv.status === "pending";
+          const clickable = true; // Allow clicking on all invoices
           return (
             <div key={inv.id} onClick={() => clickable && onOpen(inv)}
               style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: clickable ? "pointer" : "default", transition: "border-color 0.15s, box-shadow 0.15s" }}
@@ -406,15 +406,21 @@ function Dashboard({ user, invoices, onOpen }) {
   );
 }
 
-function InvoiceScreen({ invoice, user, onBack, onSent }) {
+function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   const [state, setState] = useState("idle");
-  const net = calcNet(invoice);
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [draft, setDraft] = useState(invoice);
+
+  useEffect(() => { setDraft(invoice); }, [invoice]);
+
+  const net = calcNet(draft);
 
   async function handleSend() {
     setState("sending");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      await sendInvoice(invoice.id, session?.provider_token);
+      await sendInvoice(draft.id, session?.provider_token);
       setState("sent");
       setTimeout(onSent, 2000);
     } catch (err) {
@@ -423,51 +429,122 @@ function InvoiceScreen({ invoice, user, onBack, onSent }) {
     }
   }
 
+  async function saveEdits() {
+    setSavingEdit(true);
+    try {
+      const updates = {
+        professional_fee: Number(draft.professional_fee) || 0,
+        incentive: Number(draft.incentive) || 0,
+        variable: Number(draft.variable) || 0,
+        tds: Number(draft.tds) || 0,
+        reimbursement: Number(draft.reimbursement) || 0,
+        working_days: Number(draft.working_days) || 0,
+        lop_days: Number(draft.lop_days) || 0,
+        net_payable_days: (Number(draft.working_days) || 0) - (Number(draft.lop_days) || 0),
+      };
+
+      const { error } = await supabase.from("invoices").update(updates).eq("id", draft.id);
+      if (error) throw error;
+
+      setIsEditing(false);
+      if (onUpdate) onUpdate({ ...draft, ...updates });
+    } catch (err) {
+      alert("Error saving edits: " + err.message);
+    }
+    setSavingEdit(false);
+  }
+
+  const inputStyle = { width: "80px", padding: "5px 8px", border: `1px solid ${C.gray300}`, borderRadius: "5px", fontSize: "12px", ...mono, textAlign: "right", outline: "none" };
+
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
       <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-        <InvoiceDocument invoice={invoice} user={user} />
+        <div id="invoice-document">
+          <InvoiceDocument invoice={draft} user={user} />
+        </div>
       </div>
-      <div style={{ width: "296px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <GhostBtn onClick={onBack}>← Back</GhostBtn>
-        <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{invoice.billing_period}</div>
-        <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "24px" }}>{invoice.invoice_no}</div>
-        <HR /><div style={{ height: "20px" }} />
-        <Label>Summary</Label>
-        {[["Professional Fee", inr(invoice.professional_fee || 0)], ["Incentive", inr(invoice.incentive || 0)], ["Variable / Bonus", inr(invoice.variable || 0)], ["TDS Deducted", `- ${inr(invoice.tds || 0)}`], ["Reimbursement", inr(invoice.reimbursement || 0)]].map(([l, v]) => (
-          <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span style={{ fontSize: "12px", color: C.gray500 }}>{l}</span>
-            <span style={{ fontSize: "12px", color: C.black, ...mono }}>{v}</span>
-          </div>
-        ))}
-        <HR my={12} />
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "24px" }}>
-          <span style={{ fontWeight: "700", fontSize: "14px" }}>Net Payable</span>
-          <span style={{ fontWeight: "700", fontSize: "14px", color: C.orange, ...mono }}>{inr(net)}</span>
-        </div>
-        <HR /><div style={{ height: "20px" }} />
-        {[["Sending to", COMPANY.financeEmail, "Finance Team"], ["Sending from", user.email, "Your Gmail"]].map(([label, email, sub]) => (
-          <div key={label} style={{ marginBottom: "14px" }}>
-            <Label>{label}</Label>
-            <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "6px", padding: "10px 12px" }}>
-              <div style={{ fontSize: "10px", color: C.gray500, marginBottom: "2px" }}>{sub}</div>
-              <div style={{ fontSize: "12px", color: C.black, ...mono }}>{email}</div>
-            </div>
-          </div>
-        ))}
-        <div style={{ marginTop: "auto" }}>
-          {state === "sent" ? (
-            <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "8px", padding: "16px", textAlign: "center", color: C.green, fontWeight: "600", fontSize: "14px" }}>✓ Invoice Sent!</div>
-          ) : state === "error" ? (
-            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "16px", textAlign: "center", color: C.red, fontSize: "13px" }}>
-              Failed to send. Please try again.
-              <div style={{ marginTop: "10px" }}><OrangeBtn onClick={() => setState("idle")} full>Retry</OrangeBtn></div>
-            </div>
-          ) : (
-            <OrangeBtn onClick={handleSend} disabled={state === "sending"} full>{state === "sending" ? "Sending..." : "Send Invoice →"}</OrangeBtn>
+
+      <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <GhostBtn onClick={onBack}>← Back</GhostBtn>
+          {invoice.status === "sent" && (
+            <button onClick={() => window.print()} style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: C.black, cursor: "pointer", ...sans }}>
+              ↓ Download PDF
+            </button>
           )}
-          <div style={{ fontSize: "11px", color: C.gray300, textAlign: "center", marginTop: "10px" }}>Stored in your history after sending</div>
         </div>
+
+        <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{draft.billing_period}</div>
+        <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "24px" }}>{draft.invoice_no}</div>
+        <HR /><div style={{ height: "20px" }} />
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+          <Label>Summary</Label>
+          {invoice.status === "pending" && !isEditing && (
+            <button onClick={() => setIsEditing(true)} style={{ background: "none", border: "none", color: C.orange, fontSize: "11px", fontWeight: "600", cursor: "pointer" }}>Edit Data</button>
+          )}
+        </div>
+
+        {isEditing ? (
+          <div style={{ background: C.orangeLight, padding: "16px", borderRadius: "8px", border: `1px solid ${C.orangeBorder}`, marginBottom: "24px" }}>
+            {[
+              ["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"],
+              ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"],
+              ["Working Days", "working_days"], ["LOP Days", "lop_days"]
+            ].map(([l, key]) => (
+              <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <span style={{ fontSize: "11px", color: C.gray700, fontWeight: "500" }}>{l}</span>
+                <input type="number" value={draft[key] || ""} onChange={e => setDraft({ ...draft, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.gray300} />
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <button onClick={() => { setDraft(invoice); setIsEditing(false); }} style={{ flex: 1, padding: "8px", background: C.white, border: `1px solid ${C.gray300}`, borderRadius: "5px", cursor: "pointer", fontSize: "12px", ...sans }}>Cancel</button>
+              <button onClick={saveEdits} disabled={savingEdit} style={{ flex: 1, padding: "8px", background: C.orange, color: C.white, border: "none", borderRadius: "5px", cursor: savingEdit ? "wait" : "pointer", fontSize: "12px", fontWeight: "600", ...sans }}>{savingEdit ? "Saving..." : "Save"}</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: "24px" }}>
+            {[["Professional Fee", inr(draft.professional_fee || 0)], ["Incentive", inr(draft.incentive || 0)], ["Variable / Bonus", inr(draft.variable || 0)], ["TDS Deducted", `- ${inr(draft.tds || 0)}`], ["Reimbursement", inr(draft.reimbursement || 0)]].map(([l, v]) => (
+              <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ fontSize: "12px", color: C.gray500 }}>{l}</span>
+                <span style={{ fontSize: "12px", color: C.black, ...mono }}>{v}</span>
+              </div>
+            ))}
+            <HR my={12} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: "700", fontSize: "14px" }}>Net Payable</span>
+              <span style={{ fontWeight: "700", fontSize: "14px", color: C.orange, ...mono }}>{inr(net)}</span>
+            </div>
+          </div>
+        )}
+
+        {invoice.status === "pending" && (
+          <>
+            <HR /><div style={{ height: "20px" }} />
+            {[["Sending to", COMPANY.financeEmail, "Finance Team"], ["Sending from", user.email, "Your Gmail"]].map(([label, email, sub]) => (
+              <div key={label} style={{ marginBottom: "14px" }}>
+                <Label>{label}</Label>
+                <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "6px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.gray500, marginBottom: "2px" }}>{sub}</div>
+                  <div style={{ fontSize: "12px", color: C.black, ...mono }}>{email}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ marginTop: "auto" }}>
+              {state === "sent" ? (
+                <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "8px", padding: "16px", textAlign: "center", color: C.green, fontWeight: "600", fontSize: "14px" }}>✓ Invoice Sent!</div>
+              ) : state === "error" ? (
+                <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "16px", textAlign: "center", color: C.red, fontSize: "13px" }}>
+                  Failed to send. Please try again.
+                  <div style={{ marginTop: "10px" }}><OrangeBtn onClick={() => setState("idle")} full>Retry</OrangeBtn></div>
+                </div>
+              ) : (
+                <OrangeBtn onClick={handleSend} disabled={state === "sending" || isEditing} full>{state === "sending" ? "Sending..." : "Send Invoice →"}</OrangeBtn>
+              )}
+              <div style={{ fontSize: "11px", color: C.gray300, textAlign: "center", marginTop: "10px" }}>Stored in your history after sending</div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -635,16 +712,11 @@ export default function App() {
         if (consultant) {
           setUser(consultant);
           const inv = await fetchInvoices();
-
           if (!mounted) return;
-
           setInvoices(inv);
           setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
         } else {
-          setUser({
-            email: session.user.email,
-            name: session.user.user_metadata?.full_name || session.user.email
-          });
+          setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
           setScreen("onboarding");
         }
       } catch (err) {
@@ -655,34 +727,21 @@ export default function App() {
       }
     }
 
-    // Listen to Supabase auth events as the single source of truth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("auth event:", event, session?.user?.email);
 
-      // INITIAL_SESSION fires immediately on load, grabbing the stored session
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         if (session) {
           loadUser(session);
         } else {
-          if (mounted) {
-            setScreen("login");
-            setLoading(false);
-          }
+          if (mounted) { setScreen("login"); setLoading(false); }
         }
       } else if (event === "SIGNED_OUT") {
-        if (mounted) {
-          setUser(null);
-          setInvoices([]);
-          setScreen("login");
-          setLoading(false);
-        }
+        if (mounted) { setUser(null); setInvoices([]); setScreen("login"); setLoading(false); }
       }
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
   async function handleLogin() {
@@ -695,6 +754,11 @@ export default function App() {
     setInvoices(prev => prev.map(i => i.id === activeInvoice.id ? { ...i, status: "sent", sent_at: new Date().toISOString() } : i));
     setActiveInvoice(null);
     setScreen("dashboard");
+  }
+
+  function handleUpdate(updatedInvoice) {
+    setInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
+    setActiveInvoice(updatedInvoice);
   }
 
   if (loading) {
@@ -720,6 +784,20 @@ export default function App() {
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
         ::-webkit-scrollbar-track { background: transparent; }
+        
+        @media print {
+          body * { visibility: hidden !important; }
+          #invoice-document, #invoice-document * { visibility: visible !important; }
+          #invoice-document {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+        }
       `}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
@@ -736,7 +814,7 @@ export default function App() {
             : screen === "dashboard"
               ? <Dashboard user={user} invoices={invoices} onOpen={handleOpen} />
               : screen === "invoice" && activeInvoice
-                ? <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} />
+                ? <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} onUpdate={handleUpdate} />
                 : null
           }
           {showProfile && (
