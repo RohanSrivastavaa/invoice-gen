@@ -4,165 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV } from "@/lib/supabase";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BACKEND / SUPABASE LAYER
-// Replace these with your actual Supabase + Gmail API calls
+// CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-
-function OnboardingScreen({ user, onComplete }) {
-  const [form, setForm] = useState({
-    consultantId: "", pan: "", gstin: "",
-    bankBeneficiary: "", bankName: "", bankAccount: "", bankIfsc: "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  async function handleSubmit() {
-    if (!form.consultantId || !form.pan || !form.bankBeneficiary || !form.bankName || !form.bankAccount || !form.bankIfsc) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("consultants")
-        .update({
-          consultant_id: form.consultantId,
-          pan: form.pan,
-          gstin: form.gstin,
-          bank_beneficiary: form.bankBeneficiary,
-          bank_name: form.bankName,
-          bank_account: form.bankAccount,
-          bank_ifsc: form.bankIfsc,
-        })
-        .eq("email", user.email);
-
-      if (error) throw error;
-      onComplete({
-        ...user,
-        consultant_id: form.consultantId,
-        pan: form.pan,
-        gstin: form.gstin,
-        bank_beneficiary: form.bankBeneficiary,
-        bank_name: form.bankName,
-        bank_account: form.bankAccount,
-        bank_ifsc: form.bankIfsc,
-      });
-    } catch (err) {
-      setError(err.message);
-    }
-    setSaving(false);
-  }
-
-  const fields = [
-    { label: "Consultant ID *", key: "consultantId", placeholder: "e.g. C0096" },
-    { label: "PAN *", key: "pan", placeholder: "e.g. ABCDE1234F" },
-    { label: "GSTIN (optional)", key: "gstin", placeholder: "Leave blank if not applicable" },
-    { label: "Beneficiary Name *", key: "bankBeneficiary", placeholder: "As per bank records" },
-    { label: "Bank Name *", key: "bankName", placeholder: "e.g. State Bank of India" },
-    { label: "Account Number *", key: "bankAccount", placeholder: "Your account number" },
-    { label: "IFSC Code *", key: "bankIfsc", placeholder: "e.g. SBIN0010913" },
-  ];
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.white, display: "flex", ...sans }}>
-      {/* Left black panel */}
-      <div style={{ width: "360px", background: C.black, padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "28px", height: "28px", background: C.orange, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: C.white, fontSize: "10px", fontWeight: "700", ...mono }}>NG</span>
-          </div>
-          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>Invoice Portal</span>
-        </div>
-        <div>
-          <div style={{ fontSize: "36px", ...serif, color: C.white, lineHeight: "1.2", marginBottom: "16px" }}>
-            One-time<br />setup.
-          </div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.7" }}>
-            We need a few details to generate your invoices correctly. You only need to do this once.
-          </div>
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", ...mono }}>
-          Logged in as {user.email}
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div style={{ flex: 1, padding: "48px", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
-        <div style={{ width: "100%", maxWidth: "480px" }}>
-          <div style={{ fontSize: "26px", ...serif, color: C.black, marginBottom: "6px" }}>Complete your profile</div>
-          <div style={{ fontSize: "13px", color: C.gray500, marginBottom: "32px" }}>These details will appear on every invoice you generate.</div>
-
-          {/* Two sections */}
-          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Consultant Details</div>
-
-          {fields.slice(0, 3).map(({ label, key, placeholder }) => (
-            <div key={key} style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
-              <input
-                type="text"
-                placeholder={placeholder}
-                value={form[key]}
-                onChange={e => setForm({ ...form, [key]: e.target.value })}
-                style={{
-                  width: "100%", padding: "10px 12px",
-                  border: `1px solid ${C.gray300}`, borderRadius: "7px",
-                  fontSize: "13px", color: C.black, ...mono,
-                  boxSizing: "border-box", background: C.white,
-                }}
-                onFocus={e => e.target.style.borderColor = C.orange}
-                onBlur={e => e.target.style.borderColor = C.gray300}
-              />
-            </div>
-          ))}
-
-          <HR my={20} />
-          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Bank Details</div>
-
-          {fields.slice(3).map(({ label, key, placeholder }) => (
-            <div key={key} style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
-              <input
-                type="text"
-                placeholder={placeholder}
-                value={form[key]}
-                onChange={e => setForm({ ...form, [key]: e.target.value })}
-                style={{
-                  width: "100%", padding: "10px 12px",
-                  border: `1px solid ${C.gray300}`, borderRadius: "7px",
-                  fontSize: "13px", color: C.black, ...mono,
-                  boxSizing: "border-box", background: C.white,
-                }}
-                onFocus={e => e.target.style.borderColor = C.orange}
-                onBlur={e => e.target.style.borderColor = C.gray300}
-              />
-            </div>
-          ))}
-
-          {error && (
-            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "7px", padding: "12px 14px", color: C.red, fontSize: "13px", marginBottom: "16px" }}>
-              {error}
-            </div>
-          )}
-
-          <OrangeBtn onClick={handleSubmit} disabled={saving} full>
-            {saving ? "Saving..." : "Save & Continue →"}
-          </OrangeBtn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MOCK DATA
-// ─────────────────────────────────────────────────────────────────────────────
-
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
   address: "E-190, 2nd Floor, Industrial Area, Sector 74, Sahibzada Ajit Singh Nagar, Pin-140308",
-  financeEmail: "finance@noguiltfitness.com",
+  financeEmail: process.env.NEXT_PUBLIC_FINANCE_EMAIL || "finance@noguiltfitness.com",
 };
 
 const CSV_TEMPLATE = [
@@ -189,7 +37,7 @@ function toWords(n) {
 }
 
 const inr = n => "₹" + Number(n).toLocaleString("en-IN");
-const calcNet = inv => inv.professional_fee + inv.incentive + inv.variable - inv.tds + inv.reimbursement;
+const calcNet = inv => (inv.professional_fee || 0) + (inv.incentive || 0) + (inv.variable || 0) - (inv.tds || 0) + (inv.reimbursement || 0);
 
 function downloadCSVTemplate() {
   const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -291,7 +139,7 @@ function GhostBtn({ onClick, children }) {
 
 function InvoiceDocument({ invoice, user }) {
   const net = calcNet(invoice);
-  const total = invoice.professional_fee + invoice.incentive + invoice.variable;
+  const total = (invoice.professional_fee || 0) + (invoice.incentive || 0) + (invoice.variable || 0);
   const bank = {
     beneficiaryName: invoice.bank_beneficiary || user.bank_beneficiary || "",
     bankName: invoice.bank_name || user.bank_name || "",
@@ -332,7 +180,7 @@ function InvoiceDocument({ invoice, user }) {
           <div style={{ color: C.gray700, lineHeight: "1.7", fontSize: "12px" }}>
             <div>PAN: <span style={mono}>{user.pan}</span></div>
             {user.gstin && <div>GSTIN: <span style={mono}>{user.gstin}</span></div>}
-            <div>ID: <span style={mono}>{user.consultantId}</span></div>
+            <div>ID: <span style={mono}>{user.consultant_id}</span></div>
           </div>
         </div>
         <div>
@@ -346,9 +194,14 @@ function InvoiceDocument({ invoice, user }) {
       <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "6px", padding: "16px 20px", marginBottom: "24px" }}>
         <Label>Service Days Summary</Label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", textAlign: "center" }}>
-          {[["Total Days", invoice.total_days], ["Working Days", invoice.working_days], ["LOP Days", invoice.lop_days], ["Net Payable Days", invoice.net_payable_days]].map(([l, v]) => (
+          {[
+            ["Total Days", invoice.total_days],
+            ["Working Days", invoice.working_days],
+            ["LOP Days", invoice.lop_days],
+            ["Net Payable Days", invoice.net_payable_days]
+          ].map(([l, v]) => (
             <div key={l}>
-              <div style={{ fontSize: "24px", fontWeight: "700", ...serif }}>{v}</div>
+              <div style={{ fontSize: "24px", fontWeight: "700", ...serif }}>{v || 0}</div>
               <div style={{ fontSize: "10px", color: C.gray500, marginTop: "2px" }}>{l}</div>
             </div>
           ))}
@@ -364,7 +217,11 @@ function InvoiceDocument({ invoice, user }) {
           </tr>
         </thead>
         <tbody>
-          {[["Professional Fee", invoice.professional_fee], ["Incentive", invoice.incentive], ["Variable / Bonus / Referral", invoice.variable]].map(([l, v]) => (
+          {[
+            ["Professional Fee", invoice.professional_fee || 0],
+            ["Incentive", invoice.incentive || 0],
+            ["Variable / Bonus / Referral", invoice.variable || 0]
+          ].map(([l, v]) => (
             <tr key={l} style={{ borderBottom: `1px solid ${C.gray100}` }}>
               <td style={{ padding: "10px 0", color: C.gray700 }}>{l}</td>
               <td style={{ padding: "10px 0", textAlign: "right", ...mono }}>{v.toLocaleString("en-IN")}</td>
@@ -376,11 +233,11 @@ function InvoiceDocument({ invoice, user }) {
           </tr>
           <tr style={{ borderBottom: `1px solid ${C.gray100}` }}>
             <td style={{ padding: "10px 0", color: C.red }}>TDS @ 10%</td>
-            <td style={{ padding: "10px 0", textAlign: "right", color: C.red, ...mono }}>({invoice.tds.toLocaleString("en-IN")})</td>
+            <td style={{ padding: "10px 0", textAlign: "right", color: C.red, ...mono }}>({(invoice.tds || 0).toLocaleString("en-IN")})</td>
           </tr>
           <tr style={{ borderBottom: `1px solid ${C.gray100}` }}>
             <td style={{ padding: "10px 0", color: C.gray700 }}>Reimbursement</td>
-            <td style={{ padding: "10px 0", textAlign: "right", ...mono }}>{invoice.reimbursement.toLocaleString("en-IN")}</td>
+            <td style={{ padding: "10px 0", textAlign: "right", ...mono }}>{(invoice.reimbursement || 0).toLocaleString("en-IN")}</td>
           </tr>
         </tbody>
       </table>
@@ -400,10 +257,15 @@ function InvoiceDocument({ invoice, user }) {
       {/* Bank details */}
       <Label>Bank Details</Label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "32px" }}>
-        {[["Beneficiary Name", bank.beneficiaryName], ["Bank Name", bank.bankName], ["Account Number", bank.accountNumber], ["IFSC Code", bank.ifscCode]].map(([l, v]) => (
+        {[
+          ["Beneficiary Name", bank.beneficiaryName],
+          ["Bank Name", bank.bankName],
+          ["Account Number", bank.accountNumber],
+          ["IFSC Code", bank.ifscCode]
+        ].map(([l, v]) => (
           <div key={l}>
             <div style={{ fontSize: "10px", color: C.gray500, marginBottom: "2px" }}>{l}</div>
-            <div style={{ fontWeight: "600", ...mono, fontSize: "12px" }}>{v}</div>
+            <div style={{ fontWeight: "600", ...mono, fontSize: "12px" }}>{v || "—"}</div>
           </div>
         ))}
       </div>
@@ -423,11 +285,11 @@ function InvoiceDocument({ invoice, user }) {
 // SCREENS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Login ─────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [hover, setHover] = useState(false);
   return (
     <div style={{ minHeight: "100vh", display: "flex", ...sans }}>
-      {/* Left — black panel */}
       <div style={{ width: "400px", background: C.black, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ width: "30px", height: "30px", background: C.orange, borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -435,7 +297,6 @@ function LoginScreen({ onLogin }) {
           </div>
           <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px" }}>Invoice Portal</span>
         </div>
-
         <div>
           <div style={{ fontSize: "44px", ...serif, color: C.white, lineHeight: "1.15", marginBottom: "18px" }}>
             Your invoices,<br />done in<br />
@@ -445,18 +306,15 @@ function LoginScreen({ onLogin }) {
             Log in each month, review your pre-filled invoice, and send it to finance with one click.
           </div>
         </div>
-
         <div style={{ color: "rgba(255,255,255,0.18)", fontSize: "11px", ...mono }}>
           Noguilt Fitness & Nutrition Pvt. Ltd.
         </div>
       </div>
 
-      {/* Right — white panel */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: C.white, padding: "48px" }}>
         <div style={{ width: "320px" }}>
           <div style={{ fontSize: "28px", ...serif, color: C.black, marginBottom: "8px" }}>Sign in</div>
           <div style={{ color: C.gray500, fontSize: "14px", marginBottom: "32px" }}>Use your work Google account to continue.</div>
-
           <button
             onClick={onLogin}
             onMouseEnter={() => setHover(true)}
@@ -478,7 +336,6 @@ function LoginScreen({ onLogin }) {
             </svg>
             Continue with Google
           </button>
-
           <div style={{
             marginTop: "20px", padding: "14px 16px",
             background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "7px",
@@ -486,6 +343,147 @@ function LoginScreen({ onLogin }) {
           }}>
             <strong style={{ color: C.orange }}>Note:</strong> This app will request Gmail permission to send invoices on your behalf.
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+function OnboardingScreen({ user, onComplete }) {
+  const [form, setForm] = useState({
+    consultantId: "", pan: "", gstin: "",
+    bankBeneficiary: "", bankName: "", bankAccount: "", bankIfsc: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit() {
+    if (!form.consultantId || !form.pan || !form.bankBeneficiary || !form.bankName || !form.bankAccount || !form.bankIfsc) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const { error: updateError } = await supabase
+        .from("consultants")
+        .update({
+          consultant_id: form.consultantId,
+          pan: form.pan,
+          gstin: form.gstin,
+          bank_beneficiary: form.bankBeneficiary,
+          bank_name: form.bankName,
+          bank_account: form.bankAccount,
+          bank_ifsc: form.bankIfsc,
+        })
+        .eq("email", user.email);
+
+      if (updateError) throw updateError;
+
+      onComplete({
+        ...user,
+        consultant_id: form.consultantId,
+        pan: form.pan,
+        gstin: form.gstin,
+        bank_beneficiary: form.bankBeneficiary,
+        bank_name: form.bankName,
+        bank_account: form.bankAccount,
+        bank_ifsc: form.bankIfsc,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+    setSaving(false);
+  }
+
+  const consultantFields = [
+    { label: "Consultant ID *", key: "consultantId", placeholder: "e.g. C0096" },
+    { label: "PAN *", key: "pan", placeholder: "e.g. ABCDE1234F" },
+    { label: "GSTIN (optional)", key: "gstin", placeholder: "Leave blank if not applicable" },
+  ];
+
+  const bankFields = [
+    { label: "Beneficiary Name *", key: "bankBeneficiary", placeholder: "As per bank records" },
+    { label: "Bank Name *", key: "bankName", placeholder: "e.g. State Bank of India" },
+    { label: "Account Number *", key: "bankAccount", placeholder: "Your account number" },
+    { label: "IFSC Code *", key: "bankIfsc", placeholder: "e.g. SBIN0010913" },
+  ];
+
+  const inputStyle = {
+    width: "100%", padding: "10px 12px",
+    border: `1px solid ${C.gray300}`, borderRadius: "7px",
+    fontSize: "13px", color: C.black, ...mono,
+    boxSizing: "border-box", background: C.white,
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.white, display: "flex", ...sans }}>
+      {/* Left black panel */}
+      <div style={{ width: "360px", background: C.black, padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "28px", height: "28px", background: C.orange, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: C.white, fontSize: "10px", fontWeight: "700", ...mono }}>NG</span>
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>Invoice Portal</span>
+        </div>
+        <div>
+          <div style={{ fontSize: "36px", ...serif, color: C.white, lineHeight: "1.2", marginBottom: "16px" }}>
+            One-time<br />setup.
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.7" }}>
+            We need a few details to generate your invoices correctly. You only need to do this once.
+          </div>
+        </div>
+        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", ...mono }}>
+          Logged in as {user?.email}
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div style={{ flex: 1, padding: "48px", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+        <div style={{ width: "100%", maxWidth: "480px" }}>
+          <div style={{ fontSize: "26px", ...serif, color: C.black, marginBottom: "6px" }}>Complete your profile</div>
+          <div style={{ fontSize: "13px", color: C.gray500, marginBottom: "32px" }}>These details will appear on every invoice you generate.</div>
+
+          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Consultant Details</div>
+          {consultantFields.map(({ label, key, placeholder }) => (
+            <div key={key} style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
+              <input
+                type="text" placeholder={placeholder} value={form[key]}
+                onChange={e => setForm({ ...form, [key]: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = C.orange}
+                onBlur={e => e.target.style.borderColor = C.gray300}
+              />
+            </div>
+          ))}
+
+          <HR my={20} />
+          <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "14px" }}>Bank Details</div>
+          {bankFields.map(({ label, key, placeholder }) => (
+            <div key={key} style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: C.gray700, display: "block", marginBottom: "5px" }}>{label}</label>
+              <input
+                type="text" placeholder={placeholder} value={form[key]}
+                onChange={e => setForm({ ...form, [key]: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = C.orange}
+                onBlur={e => e.target.style.borderColor = C.gray300}
+              />
+            </div>
+          ))}
+
+          {error && (
+            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "7px", padding: "12px 14px", color: C.red, fontSize: "13px", marginBottom: "16px" }}>
+              {error}
+            </div>
+          )}
+
+          <OrangeBtn onClick={handleSubmit} disabled={saving} full>
+            {saving ? "Saving..." : "Save & Continue →"}
+          </OrangeBtn>
         </div>
       </div>
     </div>
@@ -509,7 +507,7 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin }) {
         {isAdmin && <span style={{ background: C.black, color: C.white, fontSize: "10px", borderRadius: "4px", padding: "2px 7px", ...mono }}>ADMIN</span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-        {user && <span style={{ fontSize: "12px", color: C.gray500, ...mono }}>{user.consultantId}</span>}
+        {user && <span style={{ fontSize: "12px", color: C.gray500, ...mono }}>{user.consultant_id}</span>}
         {user?.is_admin && (
           <button onClick={onToggleAdmin} style={{
             fontSize: "11px", color: C.gray500, background: "none",
@@ -522,7 +520,7 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin }) {
         {user && (
           <button onClick={onProfile} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             <div style={{ width: "32px", height: "32px", background: C.orange, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: C.white, fontSize: "13px", fontWeight: "700" }}>{user.name.charAt(0)}</span>
+              <span style={{ color: C.white, fontSize: "13px", fontWeight: "700" }}>{user.name?.charAt(0) || "?"}</span>
             </div>
           </button>
         )}
@@ -545,12 +543,11 @@ function Dashboard({ user, invoices, onOpen }) {
         <div style={{ fontSize: "38px", ...serif, color: C.black }}>{user.name}</div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "36px" }}>
         {[
           { label: "Pending", value: pending.length, highlight: pending.length > 0 },
           { label: "Sent", value: sent.length },
-          { label: "Consultant ID", value: user.consultantId, isMono: true },
+          { label: "Consultant ID", value: user.consultant_id, isMono: true },
         ].map(({ label, value, highlight, isMono }) => (
           <div key={label} style={{
             border: `1px solid ${highlight ? C.orange : C.gray100}`,
@@ -563,7 +560,6 @@ function Dashboard({ user, invoices, onOpen }) {
         ))}
       </div>
 
-      {/* Tabs */}
       <div style={{ display: "flex", borderBottom: `1px solid ${C.gray100}`, marginBottom: "20px" }}>
         {[["pending", "Pending"], ["sent", "History"]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} style={{
@@ -576,7 +572,6 @@ function Dashboard({ user, invoices, onOpen }) {
         ))}
       </div>
 
-      {/* List */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {list.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300, fontSize: "14px" }}>
@@ -605,7 +600,7 @@ function Dashboard({ user, invoices, onOpen }) {
                 </div>
                 <div>
                   <div style={{ fontWeight: "600", fontSize: "14px", color: C.black, marginBottom: "2px" }}>{inv.billing_period}</div>
-                  <div style={{ fontSize: "11px", color: C.gray500, ...mono }}>{inv.invoice_no}{inv.sent_at ? ` · Sent ${inv.sent_at}` : ""}</div>
+                  <div style={{ fontSize: "11px", color: C.gray500, ...mono }}>{inv.invoice_no}{inv.sent_at ? ` · Sent ${inv.sent_at.slice(0, 10)}` : ""}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -633,9 +628,6 @@ function InvoiceScreen({ invoice, user, onBack, onSent }) {
     setState("sending");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Session:", session);
-      console.log("Provider token:", session?.provider_token);
-
       await sendInvoice(invoice.id, session?.provider_token);
       setState("sent");
       setTimeout(onSent, 2000);
@@ -647,12 +639,10 @@ function InvoiceScreen({ invoice, user, onBack, onSent }) {
 
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
-      {/* Invoice preview */}
       <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
         <InvoiceDocument invoice={invoice} user={user} />
       </div>
 
-      {/* Action panel */}
       <div style={{ width: "296px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <GhostBtn onClick={onBack}>← Back</GhostBtn>
 
@@ -662,14 +652,13 @@ function InvoiceScreen({ invoice, user, onBack, onSent }) {
         <HR />
         <div style={{ height: "20px" }} />
 
-        {/* Summary */}
         <Label>Summary</Label>
         {[
-          ["Professional Fee", inr(invoice.professional_fee)],
-          ["Incentive", inr(invoice.incentive)],
-          ["Variable / Bonus", inr(invoice.variable)],
-          ["TDS Deducted", `− ${inr(invoice.tds)}`],
-          ["Reimbursement", inr(invoice.reimbursement)],
+          ["Professional Fee", inr(invoice.professional_fee || 0)],
+          ["Incentive", inr(invoice.incentive || 0)],
+          ["Variable / Bonus", inr(invoice.variable || 0)],
+          ["TDS Deducted", `- ${inr(invoice.tds || 0)}`],
+          ["Reimbursement", inr(invoice.reimbursement || 0)],
         ].map(([l, v]) => (
           <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
             <span style={{ fontSize: "12px", color: C.gray500 }}>{l}</span>
@@ -685,7 +674,6 @@ function InvoiceScreen({ invoice, user, onBack, onSent }) {
         <HR />
         <div style={{ height: "20px" }} />
 
-        {/* Routing info */}
         {[["Sending to", COMPANY.financeEmail, "Finance Team"], ["Sending from", user.email, "Your Gmail"]].map(([label, email, sub]) => (
           <div key={label} style={{ marginBottom: "14px" }}>
             <Label>{label}</Label>
@@ -731,7 +719,7 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
   const [saved, setSaved] = useState(false);
 
   async function handleSave() {
-    await updateBankDetails(user.consultantId, form);
+    await updateBankDetails(user.consultant_id, form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -749,7 +737,7 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
         </div>
 
         <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {[["ID", user.consultantId], ["PAN", user.pan]].map(([l, v]) => (
+          {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
             <div key={l} style={{ flex: 1, background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "7px", padding: "10px 12px" }}>
               <div style={{ fontSize: "10px", color: C.gray500, marginBottom: "3px" }}>{l}</div>
               <div style={{ fontSize: "12px", fontWeight: "600", ...mono }}>{v}</div>
@@ -829,7 +817,6 @@ function AdminScreen() {
         <div style={{ color: C.gray500, fontSize: "14px" }}>Upload the payroll CSV to pre-fill invoices for all consultants this month.</div>
       </div>
 
-      {/* Drop zone */}
       <div
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -850,16 +837,8 @@ function AdminScreen() {
         <div style={{ fontSize: "12px", color: C.gray500 }}>Accepts .csv files only</div>
       </div>
 
-      {uploading && (
-        <div style={{ background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.orange, fontWeight: "600", marginBottom: "16px" }}>
-          Processing CSV...
-        </div>
-      )}
-      {error && (
-        <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.red, marginBottom: "16px" }}>
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+      {uploading && <div style={{ background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.orange, fontWeight: "600", marginBottom: "16px" }}>Processing CSV...</div>}
+      {error && <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.red, marginBottom: "16px" }}><strong>Error:</strong> {error}</div>}
       {result && (
         <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "8px", padding: "14px 18px", marginBottom: "20px" }}>
           <div style={{ color: C.green, fontWeight: "700", marginBottom: "2px" }}>✓ Upload successful</div>
@@ -867,7 +846,6 @@ function AdminScreen() {
         </div>
       )}
 
-      {/* Preview table */}
       {result?.rows?.length > 0 && (
         <div style={{ marginBottom: "28px", border: `1px solid ${C.gray100}`, borderRadius: "8px", overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
@@ -892,7 +870,7 @@ function AdminScreen() {
                     <td style={{ padding: "10px 14px", ...mono }}>{row.invoice_no}</td>
                     <td style={{ padding: "10px 14px" }}>{row.billing_period}</td>
                     <td style={{ padding: "10px 14px", ...mono }}>{inr(fee)}</td>
-                    <td style={{ padding: "10px 14px", ...mono, color: C.red }}>−{inr(tds)}</td>
+                    <td style={{ padding: "10px 14px", ...mono, color: C.red }}>-{inr(tds)}</td>
                     <td style={{ padding: "10px 14px", ...mono, fontWeight: "700" }}>{inr(net)}</td>
                   </tr>
                 );
@@ -902,7 +880,6 @@ function AdminScreen() {
         </div>
       )}
 
-      {/* Template */}
       <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "20px 24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
           <div>
@@ -917,7 +894,7 @@ function AdminScreen() {
           </code>
         </div>
         <div style={{ marginTop: "12px", fontSize: "11px", color: C.gray500, lineHeight: "1.7" }}>
-          <strong>Note:</strong> Bank columns are optional — leave empty to use the consultant's saved fallback details. Consultant must have signed in at least once before their invoice can be created.
+          <strong>Note:</strong> Bank columns are optional. Consultant must have signed in at least once before their invoice can be created.
         </div>
       </div>
     </div>
@@ -935,46 +912,50 @@ export default function App() {
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    async function loadUser(session) {
+      try {
+        const consultant = await fetchConsultant();
+        if (consultant) {
+          setUser(consultant);
+          const inv = await fetchInvoices();
+          setInvoices(inv);
+          if (!consultant.consultant_id) {
+            setScreen("onboarding");
+          } else {
+            setScreen("dashboard");
+          }
+        }
+      } catch (err) {
+        console.error("Load user error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        try {
-          const consultant = await fetchConsultant();
-          if (consultant) {
-            setUser(consultant);
-            const inv = await fetchInvoices();
-            setInvoices(inv);
-            setScreen("dashboard");
-          }
-        } catch (err) {
-          console.error("Session restore error:", err);
-        }
+        await loadUser(session);
+      } else {
+        setLoading(false);
       }
     }
+
     checkSession();
 
-    // Listen for auth state changes (fires after Google redirect)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session) {
-          const consultant = await fetchConsultant();
-          if (consultant) {
-            setUser(consultant);
-            const inv = await fetchInvoices();
-            setInvoices(inv);
-            if (!consultant.consultant_id) {
-              setScreen("onboarding");
-            } else {
-              setScreen("dashboard");
-            }
-          }
-          if (event === "SIGNED_OUT") {
-            setUser(null);
-            setInvoices([]);
-            setScreen("login");
-          }
+          await loadUser(session);
+        }
+        if (event === "SIGNED_OUT") {
+          setUser(null);
+          setInvoices([]);
+          setScreen("login");
+          setLoading(false);
         }
       }
     );
@@ -985,8 +966,6 @@ export default function App() {
   async function handleLogin() {
     try {
       await signInWithGoogle();
-      // Supabase will redirect to Google, then to /auth/callback
-      // The page below handles session + redirect back to dashboard
     } catch (err) {
       console.error("Login error:", err);
     }
@@ -997,20 +976,45 @@ export default function App() {
   function handleSent() {
     setInvoices(prev => prev.map(i =>
       i.id === activeInvoice.id
-        ? { ...i, status: "sent", sentAt: new Date().toISOString().slice(0, 10) }
+        ? { ...i, status: "sent", sent_at: new Date().toISOString() }
         : i
     ));
     setActiveInvoice(null);
     setScreen("dashboard");
   }
 
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: "100vh", background: C.white,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        ...sans,
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "36px", height: "36px", background: C.orange, borderRadius: "8px", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: C.white, fontSize: "12px", fontWeight: "700", ...mono }}>NG</span>
+          </div>
+          <div style={{ color: C.gray500, fontSize: "13px" }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <style>{`...`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #F8F8F8; }
+        input { outline: none; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
 
-      {screen === "onboarding" && (
+      {screen === "onboarding" && user && (
         <OnboardingScreen
           user={user}
           onComplete={(updatedUser) => {
@@ -1046,5 +1050,5 @@ export default function App() {
         </div>
       )}
     </>
-  )
-};
+  );
+}
