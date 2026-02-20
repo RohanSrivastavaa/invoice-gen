@@ -927,9 +927,14 @@ export default function App() {
           } else {
             setScreen("dashboard");
           }
+        } else {
+          // No consultant row yet — show onboarding with basic info from session
+          setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
+          setScreen("onboarding");
         }
       } catch (err) {
         console.error("Load user error:", err);
+        setScreen("login"); // fall back to login on error
       } finally {
         setLoading(false);
       }
