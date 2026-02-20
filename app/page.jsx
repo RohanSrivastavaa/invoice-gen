@@ -917,10 +917,14 @@ export default function App() {
   useEffect(() => {
     async function loadUser(session) {
       try {
+        console.log("loadUser started, session:", session?.user?.email);
         const consultant = await fetchConsultant();
+        console.log("consultant fetched:", consultant);
         if (consultant) {
           setUser(consultant);
+          console.log("fetching invoices...");
           const inv = await fetchInvoices();
+          console.log("invoices fetched:", inv);
           setInvoices(inv);
           if (!consultant.consultant_id) {
             setScreen("onboarding");
@@ -928,14 +932,14 @@ export default function App() {
             setScreen("dashboard");
           }
         } else {
-          // No consultant row yet — show onboarding with basic info from session
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
           setScreen("onboarding");
         }
       } catch (err) {
         console.error("Load user error:", err);
-        setScreen("login"); // fall back to login on error
+        setScreen("login");
       } finally {
+        console.log("loadUser finally block reached");
         setLoading(false);
       }
     }
