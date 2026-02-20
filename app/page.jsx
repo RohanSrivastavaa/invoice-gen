@@ -810,7 +810,7 @@ export default function App() {
 
       {screen !== "login" && screen !== "onboarding" && (
         <div style={{ minHeight: "100vh", background: C.white }}>
-          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); setScreen("dashboard"); }} darkMode={darkMode}
+          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); }} darkMode={darkMode}
             onToggleDark={() => setDarkMode(d => !d)} />
           {isAdmin
             ? <AdminScreen />
