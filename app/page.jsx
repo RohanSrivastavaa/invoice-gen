@@ -713,8 +713,12 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
     document.body.classList.toggle("dark", darkMode);
+  }, [darkMode]);
+
+  useEffect(() => {
+    let mounted = true;
+
     async function loadUser(session) {
       try {
         console.log("loadUser started:", session?.user?.email);
@@ -756,7 +760,7 @@ export default function App() {
     });
 
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, [darkMode]);
+  }, []);
 
   async function handleLogin() {
     try { await signInWithGoogle(); } catch (err) { console.error("Login error:", err); }
