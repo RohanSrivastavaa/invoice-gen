@@ -960,19 +960,21 @@ export default function App() {
       async (event, session) => {
         if (event === "SIGNED_IN" && session) {
           const consultant = await fetchConsultant();
-          setUser(consultant);
-          const inv = await fetchInvoices();
-          setInvoices(inv);
-          if (!consultant.consultant_id) {
-            setScreen("onboarding");
-          } else {
-            setScreen("dashboard");
+          if (consultant) {
+            setUser(consultant);
+            const inv = await fetchInvoices();
+            setInvoices(inv);
+            if (!consultant.consultant_id) {
+              setScreen("onboarding");
+            } else {
+              setScreen("dashboard");
+            }
           }
-        }
-        if (event === "SIGNED_OUT") {
-          setUser(null);
-          setInvoices([]);
-          setScreen("login");
+          if (event === "SIGNED_OUT") {
+            setUser(null);
+            setInvoices([]);
+            setScreen("login");
+          }
         }
       }
     );
