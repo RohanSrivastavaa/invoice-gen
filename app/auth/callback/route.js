@@ -1,4 +1,3 @@
-// app/auth/callback/route.js
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -9,7 +8,7 @@ export async function GET(request) {
   const origin = requestUrl.origin;
 
   if (code) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies(); // ← await here
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
