@@ -419,7 +419,6 @@ function OnboardingScreen({ user, onComplete }) {
 
   return (
     <div style={{ minHeight: "100vh", background: C.white, display: "flex", ...sans }}>
-      {/* Left black panel */}
       <div style={{ width: "360px", background: C.black, padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ width: "28px", height: "28px", background: C.orange, borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -440,7 +439,6 @@ function OnboardingScreen({ user, onComplete }) {
         </div>
       </div>
 
-      {/* Right form panel */}
       <div style={{ flex: 1, padding: "48px", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
         <div style={{ width: "100%", maxWidth: "480px" }}>
           <div style={{ fontSize: "26px", ...serif, color: C.black, marginBottom: "6px" }}>Complete your profile</div>
@@ -922,45 +920,33 @@ export default function App() {
         console.log("consultant fetched:", consultant);
         if (consultant) {
           setUser(consultant);
-          console.log("fetching invoices...");
           const inv = await fetchInvoices();
           console.log("invoices fetched:", inv);
           setInvoices(inv);
-          if (!consultant.consultant_id) {
-            setScreen("onboarding");
-          } else {
-            setScreen("dashboard");
-          }
+          setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
         } else {
-          setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
+          setUser({
+            email: session.user.email,
+            name: session.user.user_metadata?.full_name || session.user.email,
+          });
           setScreen("onboarding");
         }
       } catch (err) {
         console.error("Load user error:", err);
         setScreen("login");
       } finally {
-        console.log("loadUser finally block reached");
         setLoading(false);
       }
     }
 
-    async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await loadUser(session);
-      } else {
-        setLoading(false);
-      }
-    }
-
-    checkSession();
-
+    // Use only onAuthStateChange — fires on initial load (INITIAL_SESSION)
+    // AND on sign in/out. No need for a separate checkSession call.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
+        console.log("auth event:", event, session?.user?.email);
+        if (session) {
           await loadUser(session);
-        }
-        if (event === "SIGNED_OUT") {
+        } else {
           setUser(null);
           setInvoices([]);
           setScreen("login");
@@ -1053,7 +1039,12 @@ export default function App() {
             <ProfileDrawer
               user={user}
               onClose={() => setShowProfile(false)}
-              onSignOut={() => { setUser(null); setScreen("login"); setShowProfile(false); }}
+              onSignOut={async () => {
+                await supabase.auth.signOut();
+                setUser(null);
+                setScreen("login");
+                setShowProfile(false);
+              }}
             />
           )}
         </div>
