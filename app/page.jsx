@@ -312,7 +312,7 @@ function OnboardingScreen({ user, onComplete }) {
   );
 }
 
-function Topbar({ user, onProfile, isAdmin, onToggleAdmin }) {
+function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDark }) {
   return (
     <div style={{ height: "56px", borderBottom: `1px solid ${C.gray100}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", background: C.white, position: "sticky", top: 0, zIndex: 50 }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
