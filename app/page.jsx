@@ -39,6 +39,18 @@ function downloadCSVTemplate() {
   a.click();
 }
 
+async function downloadInvoicePDF(invoiceNo) {
+  const { default: html2canvas } = await import("html2canvas");
+  const { default: jsPDF } = await import("jspdf");
+  const element = document.getElementById("invoice-document");
+  if (!element) return;
+  const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
+  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+  pdf.save(`Invoice-${invoiceNo}.pdf`);
+}
+
 const C = {
   orange: "#E85D04", orangeHover: "#C94E00", orangeLight: "#FFF3EC", orangeBorder: "#FFD0B0",
   black: "#111111", gray700: "#444444", gray500: "#777777", gray300: "#CCCCCC",
@@ -95,6 +107,21 @@ function GhostBtn({ onClick, children }) {
   return (
     <button onClick={onClick} style={{ background: "none", border: "none", color: C.gray500, fontSize: "13px", cursor: "pointer", padding: "0", ...sans, display: "flex", alignItems: "center", gap: "4px" }}>
       {children}
+    </button>
+  );
+}
+
+function PDFBtn({ invoiceNo }) {
+  const [loading, setLoading] = useState(false);
+  async function handle() {
+    setLoading(true);
+    await downloadInvoicePDF(invoiceNo);
+    setLoading(false);
+  }
+  return (
+    <button onClick={handle} disabled={loading}
+      style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: loading ? C.gray300 : C.black, cursor: loading ? "wait" : "pointer", ...sans }}>
+      {loading ? "Generating..." : "↓ Download PDF"}
     </button>
   );
 }
@@ -473,11 +500,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <GhostBtn onClick={onBack}>← Back</GhostBtn>
-          {invoice.status === "sent" && (
-            <button onClick={() => window.print()} style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: C.black, cursor: "pointer", ...sans }}>
-              ↓ Download PDF
-            </button>
-          )}
+          <PDFBtn invoiceNo={draft.invoice_no} />
         </div>
         <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{draft.billing_period}</div>
         <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "24px" }}>{draft.invoice_no}</div>
@@ -686,10 +709,13 @@ function AdminScreen() {
     return (
       <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
         <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <InvoiceDocument invoice={selectedInvoice} user={{ name: selectedInvoice.consultant_name, pan: selectedInvoice.consultant_pan, consultant_id: selectedInvoice.consultant_id }} />
+          <div id="invoice-document">
+            <InvoiceDocument invoice={selectedInvoice} user={{ name: selectedInvoice.consultant_name, pan: selectedInvoice.consultant_pan, consultant_id: selectedInvoice.consultant_id }} />
+          </div>
         </div>
         <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <GhostBtn onClick={() => setSelectedInvoice(null)}>← Back to Overview</GhostBtn>
+          <PDFBtn invoiceNo={selectedInvoice.invoice_no} />
           <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{selectedInvoice.billing_period}</div>
           <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "2px" }}>{selectedInvoice.invoice_no}</div>
           <div style={{ fontSize: "12px", color: C.gray700, marginBottom: "20px" }}>{selectedInvoice.consultant_name}</div>
