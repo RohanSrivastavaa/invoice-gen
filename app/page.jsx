@@ -639,6 +639,7 @@ function AdminScreen() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [reminderSending, setReminderSending] = useState({});
   const [reminderSent, setReminderSent] = useState({});
+  const [allConsultants, setAllConsultants] = useState([]);
 
   // CSV upload state
   const [dragOver, setDragOver] = useState(false);
@@ -659,6 +660,7 @@ function AdminScreen() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setAllInvoices(json.invoices);
+      setAllConsultants(json.consultants || []);
     } catch (err) { setFetchError(err.message); }
     setLoadingInvoices(false);
   }
@@ -758,7 +760,7 @@ function AdminScreen() {
     <div style={{ ...sans }}>
       {/* Tab bar */}
       <div style={{ borderBottom: `1px solid ${C.gray100}`, display: "flex", padding: "0 32px", background: C.white }}>
-        {[["overview", "Overview"], ["upload", "Upload CSV"]].map(([key, label]) => (
+        {[["overview", "Overview"], ["consultants", "Consultants"], ["upload", "Upload CSV"]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 16px", fontSize: "13px", fontWeight: "600", color: tab === key ? C.black : C.gray500, borderBottom: `2px solid ${tab === key ? C.orange : "transparent"}`, marginBottom: "-1px", ...sans }}>
             {label}
           </button>
@@ -831,6 +833,78 @@ function AdminScreen() {
               <strong>Note:</strong> Bank columns are optional. Consultant must have signed in at least once before their invoice can be created.
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === "consultants" && (
+        <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
+          {/* Summary cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px", marginBottom: "32px" }}>
+            {[
+              { label: "Total Registered", value: allConsultants.length, color: C.black },
+              { label: "Profile Complete", value: allConsultants.filter(c => c.pan && c.bank_account && c.consultant_id).length, color: C.green },
+              { label: "Incomplete Profile", value: allConsultants.filter(c => !c.pan || !c.bank_account || !c.consultant_id).length, color: C.orange, highlight: allConsultants.filter(c => !c.pan || !c.bank_account || !c.consultant_id).length > 0 },
+            ].map(({ label, value, color, highlight }) => (
+              <div key={label} style={{ border: `1px solid ${highlight ? C.orange : C.gray100}`, background: highlight ? C.orangeLight : C.gray50, borderRadius: "8px", padding: "18px 20px" }}>
+                <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "1px", color: color, textTransform: "uppercase", marginBottom: "6px" }}>{label}</div>
+                <div style={{ fontSize: "26px", fontWeight: "700", ...serif, color: color }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Consultants table */}
+          {loadingInvoices ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300 }}>Loading...</div>
+          ) : allConsultants.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300, fontSize: "14px" }}>No consultants have logged in yet.</div>
+          ) : (
+            <div style={{ border: `1px solid ${C.gray100}`, borderRadius: "10px", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                <thead style={{ background: C.gray50 }}>
+                  <tr>
+                    {["Name", "Consultant ID", "PAN", "Bank Account", "IFSC", "Profile"].map(h => (
+                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "10px", fontWeight: "700", color: C.gray500, letterSpacing: "0.5px", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allConsultants.map((c, i) => {
+                    const complete = c.pan && c.bank_account && c.bank_ifsc && c.bank_beneficiary && c.consultant_id;
+                    return (
+                      <tr key={c.email} style={{ borderTop: `1px solid ${C.gray100}`, background: i % 2 === 0 ? C.white : C.gray50 }}>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ fontWeight: "600", fontSize: "13px" }}>{c.name}</div>
+                          <div style={{ fontSize: "11px", color: C.gray500 }}>{c.email}</div>
+                        </td>
+                        <td style={{ padding: "12px 16px", ...mono, color: c.consultant_id ? C.orange : C.red, fontWeight: "600" }}>
+                          {c.consultant_id || "Not set"}
+                        </td>
+                        <td style={{ padding: "12px 16px", ...mono, fontSize: "12px" }}>
+                          {c.pan || <span style={{ color: C.red }}>Missing</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px", ...mono, fontSize: "12px" }}>
+                          {c.bank_account ? `••••${c.bank_account.slice(-4)}` : <span style={{ color: C.red }}>Missing</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px", ...mono, fontSize: "12px" }}>
+                          {c.bank_ifsc || <span style={{ color: C.red }}>Missing</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span style={{
+                            background: complete ? C.greenLight : C.orangeLight,
+                            color: complete ? C.green : C.orange,
+                            border: `1px solid ${complete ? C.greenBorder : C.orangeBorder}`,
+                            borderRadius: "4px", padding: "3px 9px", fontSize: "11px", fontWeight: "600", ...mono
+                          }}>
+                            {complete ? "Complete" : "Incomplete"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

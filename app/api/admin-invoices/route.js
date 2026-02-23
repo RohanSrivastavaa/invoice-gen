@@ -9,7 +9,7 @@ const adminSupabase = createClient(
 
 export async function GET() {
   try {
-    // Fetch all invoices with consultant details
+    // Fetch all invoices
     const { data: invoices, error: invError } = await adminSupabase
       .from("invoices")
       .select("*")
@@ -17,14 +17,15 @@ export async function GET() {
 
     if (invError) throw invError;
 
-    // Fetch all consultants
+    // Fetch all consultants with full details
     const { data: consultants, error: conError } = await adminSupabase
       .from("consultants")
-      .select("consultant_id, name, email, pan");
+      .select("consultant_id, name, email, pan, gstin, bank_beneficiary, bank_name, bank_account, bank_ifsc, created_at")
+      .order("name", { ascending: true });
 
     if (conError) throw conError;
 
-    // Join consultant name/email into each invoice
+    // Join consultant info into each invoice
     const consultantMap = {};
     consultants.forEach(c => { consultantMap[c.consultant_id] = c; });
 
