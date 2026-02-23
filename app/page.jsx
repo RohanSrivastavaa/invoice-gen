@@ -1006,12 +1006,12 @@ function AdminScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState(() => localStorage.getItem("ng_screen") || "login");
+  const [screen, setScreen] = useState("login");
   const [user, setUser] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem("ng_is_admin") === "true");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -1020,14 +1020,12 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    if (screen !== "login" && screen !== "onboarding") {
-      localStorage.setItem("ng_screen", screen);
-    }
-  }, [screen]);
-
-  useEffect(() => {
-    localStorage.setItem("ng_is_admin", isAdmin);
-  }, [isAdmin]);
+    if (typeof window === "undefined") return;
+    const savedScreen = localStorage.getItem("ng_screen");
+    const savedAdmin = localStorage.getItem("ng_is_admin") === "true";
+    if (savedScreen) setScreen(savedScreen);
+    if (savedAdmin) setIsAdmin(true);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
