@@ -1035,15 +1035,15 @@ export default function App() {
           if (!mounted) return;
           setInvoices(inv);
 
-          // Restore saved screen or default to dashboard
-          const savedScreen = localStorage.getItem("ng_screen");
-          const validScreens = ["dashboard", "invoice"];
-          setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
-
-          // Restore admin state — only if user is actually an admin
+          // Restore admin state FIRST — before setScreen to avoid flash
           if (consultant.is_admin && localStorage.getItem("ng_is_admin") === "true") {
             setIsAdmin(true);
           }
+
+          // Then restore screen
+          const savedScreen = localStorage.getItem("ng_screen");
+          const validScreens = ["dashboard", "invoice"];
+          setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
         } else {
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
           setScreen("onboarding");
