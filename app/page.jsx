@@ -44,10 +44,21 @@ async function downloadInvoicePDF(invoiceNo) {
   const { default: jsPDF } = await import("jspdf");
   const element = document.getElementById("invoice-document");
   if (!element) return;
-  const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
-  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+
+  const canvas = await html2canvas(element, {
+    scale: 1.5,                // ← was 2, brings size down ~40%
+    useCORS: true,
+    backgroundColor: "#ffffff",
+  });
+
+  const imgData = canvas.toDataURL("image/jpeg", 0.85); // ← PNG → JPEG at 85% quality
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "px",
+    format: [canvas.width / 1.5, canvas.height / 1.5],  // ← match new scale
+  });
+
+  pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / 1.5, canvas.height / 1.5);
   pdf.save(`Invoice-${invoiceNo}.pdf`);
 }
 
