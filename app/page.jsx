@@ -1012,9 +1012,12 @@ export default function App() {
   }, [screen]);
 
   // ── Persist isAdmin to localStorage whenever it changes ──
+  // ── Persist isAdmin to localStorage only after auth is resolved ──
   useEffect(() => {
-    localStorage.setItem("ng_is_admin", String(isAdmin));
-  }, [isAdmin]);
+    if (!loading) {
+      localStorage.setItem("ng_is_admin", String(isAdmin));
+    }
+  }, [isAdmin, loading]);
 
   useEffect(() => {
     let mounted = true;
