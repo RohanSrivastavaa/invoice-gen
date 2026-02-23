@@ -923,10 +923,18 @@ export default function App() {
       else if (mounted) { setScreen("login"); setLoading(false); }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("auth event:", event, session?.user?.email);
-      if (event === "SIGNED_IN") await loadUser(session);
-      if (event === "SIGNED_OUT" && mounted) { setUser(null); setInvoices([]); setScreen("login"); setLoading(false); }
+
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        if (session) {
+          loadUser(session);
+        } else {
+          if (mounted) { setScreen("login"); setLoading(false); }
+        }
+      } else if (event === "SIGNED_OUT") {
+        if (mounted) { setUser(null); setInvoices([]); setScreen("login"); setLoading(false); }
+      }
     });
 
     return () => { mounted = false; subscription.unsubscribe(); };
