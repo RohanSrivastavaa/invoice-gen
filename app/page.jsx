@@ -1020,14 +1020,6 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const savedScreen = localStorage.getItem("ng_screen");
-    const savedAdmin = localStorage.getItem("ng_is_admin") === "true";
-    if (savedScreen) setScreen(savedScreen);
-    if (savedAdmin) setIsAdmin(true);
-  }, []);
-
-  useEffect(() => {
     let mounted = true;
 
     async function loadUser(session) {
@@ -1043,8 +1035,13 @@ export default function App() {
           const inv = await fetchInvoices();
           if (!mounted) return;
           setInvoices(inv);
-          setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
-          // Auto-restore admin view for admin users
+
+          // Restore saved screen or default to dashboard
+          const savedScreen = localStorage.getItem("ng_screen");
+          const validScreens = ["dashboard", "invoice"];
+          setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
+
+          // Restore admin state
           if (consultant.is_admin && localStorage.getItem("ng_is_admin") === "true") {
             setIsAdmin(true);
           }
