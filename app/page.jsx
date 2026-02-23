@@ -17,7 +17,8 @@ const CSV_TEMPLATE = [
 
 function toWords(n) {
   if (n === 0) return "Zero";
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
   if (n < 20) return ones[n];
   if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
@@ -52,8 +53,11 @@ const serif = { fontFamily: "'Instrument Serif', serif", letterSpacing: "-0.3px"
 const sans = { fontFamily: "'Geist', sans-serif" };
 
 const HR = ({ my = 0 }) => <div style={{ height: "1px", background: C.gray100, margin: `${my}px 0` }} />;
+
 const Label = ({ children }) => (
-  <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "10px" }}>{children}</div>
+  <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "1px", color: C.gray500, textTransform: "uppercase", marginBottom: "10px" }}>
+    {children}
+  </div>
 );
 
 function Badge({ status }) {
@@ -71,7 +75,7 @@ function Badge({ status }) {
   );
 }
 
-function OrangeBtn({ onClick, disabled, children, full, small }) {
+function OrangeBtn({ onClick, disabled, children, full }) {
   const [hover, setHover] = useState(false);
   return (
     <button onClick={onClick} disabled={disabled}
@@ -80,8 +84,7 @@ function OrangeBtn({ onClick, disabled, children, full, small }) {
         width: full ? "100%" : "auto",
         background: disabled ? C.gray300 : hover ? C.orangeHover : C.orange,
         color: C.white, border: "none", borderRadius: "7px",
-        padding: small ? "7px 14px" : "13px 20px",
-        fontSize: small ? "12px" : "14px", fontWeight: "600",
+        padding: "13px 20px", fontSize: "14px", fontWeight: "600",
         cursor: disabled ? "not-allowed" : "pointer", ...sans, transition: "background 0.15s",
       }}
     >{children}</button>
@@ -96,7 +99,6 @@ function GhostBtn({ onClick, children }) {
   );
 }
 
-// ─── Invoice Document ─────────────────────────────────────────────────────────
 function InvoiceDocument({ invoice, user }) {
   const net = calcNet(invoice);
   const total = (invoice.professional_fee || 0) + (invoice.incentive || 0) + (invoice.variable || 0);
@@ -106,6 +108,7 @@ function InvoiceDocument({ invoice, user }) {
     accountNumber: invoice.bank_account || user.bank_account || "",
     ifscCode: invoice.bank_ifsc || user.bank_ifsc || "",
   };
+
   return (
     <div style={{ background: C.white, width: "620px", padding: "48px 52px", boxShadow: "0 2px 8px rgba(0,0,0,0.06), 0 12px 40px rgba(0,0,0,0.04)", borderRadius: "3px", color: C.black, fontSize: "12px", ...sans }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
@@ -123,11 +126,11 @@ function InvoiceDocument({ invoice, user }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", marginBottom: "24px" }}>
         <div>
           <Label>From</Label>
-          <div style={{ fontWeight: "600", marginBottom: "6px" }}>{user.name || invoice.consultant_name}</div>
+          <div style={{ fontWeight: "600", marginBottom: "6px" }}>{user.name}</div>
           <div style={{ color: C.gray700, lineHeight: "1.7", fontSize: "12px" }}>
-            <div>PAN: <span style={mono}>{user.pan || invoice.consultant_pan}</span></div>
+            <div>PAN: <span style={mono}>{user.pan}</span></div>
             {user.gstin && <div>GSTIN: <span style={mono}>{user.gstin}</span></div>}
-            <div>ID: <span style={mono}>{invoice.consultant_id}</span></div>
+            <div>ID: <span style={mono}>{user.consultant_id || invoice.consultant_id}</span></div>
           </div>
         </div>
         <div>
@@ -201,7 +204,6 @@ function InvoiceDocument({ invoice, user }) {
   );
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [hover, setHover] = useState(false);
   return (
@@ -217,7 +219,9 @@ function LoginScreen({ onLogin }) {
           <div style={{ fontSize: "44px", ...serif, color: C.white, lineHeight: "1.15", marginBottom: "18px" }}>
             Your invoices,<br />done in<br /><span style={{ color: C.orange }}>seconds.</span>
           </div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px", lineHeight: "1.7" }}>Log in each month, review your pre-filled invoice, and send it to finance with one click.</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px", lineHeight: "1.7" }}>
+            Log in each month, review your pre-filled invoice, and send it to finance with one click.
+          </div>
         </div>
         <div style={{ color: "rgba(255,255,255,0.18)", fontSize: "11px", ...mono }}>Noguilt Fitness & Nutrition Pvt. Ltd.</div>
       </div>
@@ -244,7 +248,6 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Onboarding ───────────────────────────────────────────────────────────────
 function OnboardingScreen({ user, onComplete }) {
   const [form, setForm] = useState({ consultantId: "", pan: "", gstin: "", bankBeneficiary: "", bankName: "", bankAccount: "", bankIfsc: "" });
   const [saving, setSaving] = useState(false);
@@ -311,7 +314,6 @@ function OnboardingScreen({ user, onComplete }) {
   );
 }
 
-// ─── Topbar ───────────────────────────────────────────────────────────────────
 function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDark }) {
   return (
     <div style={{ height: "56px", borderBottom: `1px solid ${C.gray100}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", background: C.white, position: "sticky", top: 0, zIndex: 50 }}>
@@ -326,10 +328,14 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDar
         {user && <span style={{ fontSize: "12px", color: C.gray500, ...mono }}>{user.consultant_id}</span>}
         {user?.is_admin && (
           <button onClick={onToggleAdmin} style={{ fontSize: "11px", color: C.gray500, background: "none", border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "5px 10px", cursor: "pointer", ...mono }}>
-            {isAdmin ? "← My Invoices" : "Admin →"}
+            {isAdmin ? "← Consultant view" : "Admin →"}
           </button>
         )}
-        <button onClick={onToggleDark} style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "5px 10px", cursor: "pointer", fontSize: "13px", lineHeight: 1 }}>
+        <button
+          onClick={onToggleDark}
+          title="Toggle dark mode"
+          style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "5px 10px", cursor: "pointer", fontSize: "13px", lineHeight: 1 }}
+        >
           {darkMode ? "☀️" : "🌙"}
         </button>
         {user && (
@@ -344,11 +350,10 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDar
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard({ user, invoices, onOpen }) {
   const [tab, setTab] = useState("pending");
   const pending = invoices.filter(i => i.status === "pending");
-  const sent = invoices.filter(i => i.status !== "pending");
+  const sent = invoices.filter(i => i.status === "sent");
   const list = tab === "pending" ? pending : sent;
 
   return (
@@ -378,11 +383,11 @@ function Dashboard({ user, invoices, onOpen }) {
         )}
         {list.map(inv => {
           const net = calcNet(inv);
-          const clickable = inv.status === "pending";
+          const clickable = true; // Allow clicking on all invoices
           return (
-            <div key={inv.id} onClick={() => onOpen(inv)}
-              style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.orangeLight}`; }}
+            <div key={inv.id} onClick={() => clickable && onOpen(inv)}
+              style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: clickable ? "pointer" : "default", transition: "border-color 0.15s, box-shadow 0.15s" }}
+              onMouseEnter={e => { if (clickable) { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.orangeLight}`; } }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = C.gray100; e.currentTarget.style.boxShadow = "none"; }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -400,7 +405,7 @@ function Dashboard({ user, invoices, onOpen }) {
                   <div style={{ fontSize: "10px", color: C.gray500 }}>net payable</div>
                 </div>
                 <Badge status={inv.status} />
-                <span style={{ color: C.orange, fontSize: "16px" }}>→</span>
+                {clickable && <span style={{ color: C.orange, fontSize: "16px" }}>→</span>}
               </div>
             </div>
           );
@@ -410,7 +415,6 @@ function Dashboard({ user, invoices, onOpen }) {
   );
 }
 
-// ─── Invoice Screen ───────────────────────────────────────────────────────────
 function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   const [state, setState] = useState("idle");
   const [isEditing, setIsEditing] = useState(false);
@@ -418,6 +422,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   const [draft, setDraft] = useState(invoice);
 
   useEffect(() => { setDraft(invoice); }, [invoice]);
+
   const net = calcNet(draft);
 
   async function handleSend() {
@@ -427,16 +432,22 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       await sendInvoice(draft.id, session?.provider_token);
       setState("sent");
       setTimeout(onSent, 2000);
-    } catch (err) { console.error("Send error:", err); setState("error"); }
+    } catch (err) {
+      console.error("Send error:", err);
+      setState("error");
+    }
   }
 
   async function saveEdits() {
     setSavingEdit(true);
     try {
       const updates = {
-        professional_fee: Number(draft.professional_fee) || 0, incentive: Number(draft.incentive) || 0,
-        variable: Number(draft.variable) || 0, tds: Number(draft.tds) || 0,
-        reimbursement: Number(draft.reimbursement) || 0, working_days: Number(draft.working_days) || 0,
+        professional_fee: Number(draft.professional_fee) || 0,
+        incentive: Number(draft.incentive) || 0,
+        variable: Number(draft.variable) || 0,
+        tds: Number(draft.tds) || 0,
+        reimbursement: Number(draft.reimbursement) || 0,
+        working_days: Number(draft.working_days) || 0,
         lop_days: Number(draft.lop_days) || 0,
         net_payable_days: (Number(draft.working_days) || 0) - (Number(draft.lop_days) || 0),
       };
@@ -444,7 +455,9 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       if (error) throw error;
       setIsEditing(false);
       if (onUpdate) onUpdate({ ...draft, ...updates });
-    } catch (err) { alert("Error saving: " + err.message); }
+    } catch (err) {
+      alert("Error saving edits: " + err.message);
+    }
     setSavingEdit(false);
   }
 
@@ -453,12 +466,18 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
       <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-        <InvoiceDocument invoice={draft} user={user} />
+        <div id="invoice-document">
+          <InvoiceDocument invoice={draft} user={user} />
+        </div>
       </div>
       <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <GhostBtn onClick={onBack}>← Back</GhostBtn>
-          <button onClick={() => window.print()} style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: C.black, cursor: "pointer", ...sans }}>↓ PDF</button>
+          {invoice.status === "sent" && (
+            <button onClick={() => window.print()} style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: C.black, cursor: "pointer", ...sans }}>
+              ↓ Download PDF
+            </button>
+          )}
         </div>
         <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{draft.billing_period}</div>
         <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "24px" }}>{draft.invoice_no}</div>
@@ -466,25 +485,29 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
           <Label>Summary</Label>
           {invoice.status === "pending" && !isEditing && (
-            <button onClick={() => setIsEditing(true)} style={{ background: "none", border: "none", color: C.orange, fontSize: "11px", fontWeight: "600", cursor: "pointer" }}>Edit</button>
+            <button onClick={() => setIsEditing(true)} style={{ background: "none", border: "none", color: C.orange, fontSize: "11px", fontWeight: "600", cursor: "pointer" }}>Edit Data</button>
           )}
         </div>
         {isEditing ? (
           <div style={{ background: C.orangeLight, padding: "16px", borderRadius: "8px", border: `1px solid ${C.orangeBorder}`, marginBottom: "24px" }}>
-            {[["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"], ["TDS", "tds"], ["Reimbursement", "reimbursement"], ["Working Days", "working_days"], ["LOP Days", "lop_days"]].map(([l, key]) => (
+            {[
+              ["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"],
+              ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"],
+              ["Working Days", "working_days"], ["LOP Days", "lop_days"]
+            ].map(([l, key]) => (
               <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <span style={{ fontSize: "11px", color: C.gray700 }}>{l}</span>
+                <span style={{ fontSize: "11px", color: C.gray700, fontWeight: "500" }}>{l}</span>
                 <input type="number" value={draft[key] || ""} onChange={e => setDraft({ ...draft, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.gray300} />
               </div>
             ))}
             <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
               <button onClick={() => { setDraft(invoice); setIsEditing(false); }} style={{ flex: 1, padding: "8px", background: C.white, border: `1px solid ${C.gray300}`, borderRadius: "5px", cursor: "pointer", fontSize: "12px", ...sans }}>Cancel</button>
-              <button onClick={saveEdits} disabled={savingEdit} style={{ flex: 1, padding: "8px", background: C.orange, color: C.white, border: "none", borderRadius: "5px", cursor: "pointer", fontSize: "12px", fontWeight: "600", ...sans }}>{savingEdit ? "Saving..." : "Save"}</button>
+              <button onClick={saveEdits} disabled={savingEdit} style={{ flex: 1, padding: "8px", background: C.orange, color: C.white, border: "none", borderRadius: "5px", cursor: savingEdit ? "wait" : "pointer", fontSize: "12px", fontWeight: "600", ...sans }}>{savingEdit ? "Saving..." : "Save"}</button>
             </div>
           </div>
         ) : (
           <div style={{ marginBottom: "24px" }}>
-            {[["Professional Fee", inr(draft.professional_fee || 0)], ["Incentive", inr(draft.incentive || 0)], ["Variable", inr(draft.variable || 0)], ["TDS Deducted", `- ${inr(draft.tds || 0)}`], ["Reimbursement", inr(draft.reimbursement || 0)]].map(([l, v]) => (
+            {[["Professional Fee", inr(draft.professional_fee || 0)], ["Incentive", inr(draft.incentive || 0)], ["Variable / Bonus", inr(draft.variable || 0)], ["TDS Deducted", `- ${inr(draft.tds || 0)}`], ["Reimbursement", inr(draft.reimbursement || 0)]].map(([l, v]) => (
               <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "12px", color: C.gray500 }}>{l}</span>
                 <span style={{ fontSize: "12px", color: C.black, ...mono }}>{v}</span>
@@ -529,14 +552,14 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   );
 }
 
-// ─── Profile Drawer ───────────────────────────────────────────────────────────
 function ProfileDrawer({ user, onClose, onSignOut }) {
   const [form, setForm] = useState({ beneficiaryName: user.bank_beneficiary || "", bankName: user.bank_name || "", accountNumber: user.bank_account || "", ifscCode: user.bank_ifsc || "" });
   const [saved, setSaved] = useState(false);
 
   async function handleSave() {
     await updateBankDetails(user.consultant_id, form);
-    setSaved(true); setTimeout(() => setSaved(false), 2500);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   }
 
   return (
@@ -548,7 +571,7 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
             <div style={{ fontWeight: "700", fontSize: "16px" }}>{user.name}</div>
             <div style={{ fontSize: "12px", color: C.gray500, marginTop: "2px" }}>{user.email}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.gray500, fontSize: "18px" }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.gray500, fontSize: "18px", lineHeight: 1 }}>✕</button>
         </div>
         <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
           {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
@@ -559,7 +582,8 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
           ))}
         </div>
         <HR my={0} /><div style={{ height: "20px" }} />
-        <Label>Bank Details</Label>
+        <Label>Bank Details (Fallback)</Label>
+        <div style={{ fontSize: "11px", color: C.gray500, marginBottom: "16px", lineHeight: "1.6" }}>Used when bank details are not provided in the monthly CSV.</div>
         {[["Beneficiary Name", "beneficiaryName"], ["Bank Name", "bankName"], ["Account Number", "accountNumber"], ["IFSC Code", "ifscCode"]].map(([label, key]) => (
           <div key={key} style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "11px", color: C.gray700, fontWeight: "600", display: "block", marginBottom: "4px" }}>{label}</label>
@@ -580,30 +604,38 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
   );
 }
 
-// ─── Admin Dashboard ──────────────────────────────────────────────────────────
-function AdminDashboard({ currentUser }) {
+// ─── Admin Screen (tabbed: Overview + Upload CSV) ─────────────────────────────
+function AdminScreen() {
   const [tab, setTab] = useState("overview");
   const [allInvoices, setAllInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadingInvoices, setLoadingInvoices] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [filter, setFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [reminderSending, setReminderSending] = useState({});
   const [reminderSent, setReminderSent] = useState({});
+
+  // CSV upload state
+  const [dragOver, setDragOver] = useState(false);
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const fileRef = useRef();
 
   useEffect(() => {
     if (tab === "overview") fetchAllInvoices();
   }, [tab]);
 
   async function fetchAllInvoices() {
-    setLoading(true); setError(null);
+    setLoadingInvoices(true); setFetchError(null);
     try {
       const res = await fetch("/api/admin-invoices");
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setAllInvoices(json.invoices);
-    } catch (err) { setError(err.message); }
-    setLoading(false);
+    } catch (err) { setFetchError(err.message); }
+    setLoadingInvoices(false);
   }
 
   async function handleMarkPaid(invoiceId) {
@@ -635,24 +667,29 @@ function AdminDashboard({ currentUser }) {
     setReminderSending(s => ({ ...s, [inv.id]: false }));
   }
 
-  const filtered = filter === "all" ? allInvoices : allInvoices.filter(i => i.status === filter);
+  async function processFile(f) {
+    setFile(f); setResult(null); setUploadError(null); setUploading(true);
+    try { const res = await uploadPaymentCSV(f); setResult(res); } catch (e) { setUploadError(e.message); }
+    setUploading(false);
+  }
 
+  const filtered = filter === "all" ? allInvoices : allInvoices.filter(i => i.status === filter);
   const totalPayout = allInvoices.reduce((sum, i) => sum + calcNet(i), 0);
   const pendingCount = allInvoices.filter(i => i.status === "pending").length;
   const sentCount = allInvoices.filter(i => i.status === "sent").length;
   const paidCount = allInvoices.filter(i => i.status === "paid").length;
 
-  // If an invoice is selected, show its detail view
+  // Invoice detail view (when a row is clicked)
   if (selectedInvoice) {
     return (
       <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
         <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <InvoiceDocument invoice={selectedInvoice} user={{ name: selectedInvoice.consultant_name, pan: selectedInvoice.consultant_pan }} />
+          <InvoiceDocument invoice={selectedInvoice} user={{ name: selectedInvoice.consultant_name, pan: selectedInvoice.consultant_pan, consultant_id: selectedInvoice.consultant_id }} />
         </div>
         <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <GhostBtn onClick={() => setSelectedInvoice(null)}>← Back to Overview</GhostBtn>
           <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{selectedInvoice.billing_period}</div>
-          <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "4px" }}>{selectedInvoice.invoice_no}</div>
+          <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "2px" }}>{selectedInvoice.invoice_no}</div>
           <div style={{ fontSize: "12px", color: C.gray700, marginBottom: "20px" }}>{selectedInvoice.consultant_name}</div>
           <HR /><div style={{ height: "20px" }} />
           <Label>Breakdown</Label>
@@ -698,22 +735,89 @@ function AdminDashboard({ currentUser }) {
         ))}
       </div>
 
-      {tab === "upload" && <AdminUpload />}
+      {/* ── Upload tab ── */}
+      {tab === "upload" && (
+        <div style={{ maxWidth: "720px", margin: "0 auto", padding: "36px 24px" }}>
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: "34px", ...serif, color: C.black, marginBottom: "6px" }}>Monthly Upload</div>
+            <div style={{ color: C.gray500, fontSize: "14px" }}>Upload the payroll CSV to pre-fill invoices for all consultants this month.</div>
+          </div>
+          <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
+            onDrop={e => { e.preventDefault(); setDragOver(false); e.dataTransfer.files[0] && processFile(e.dataTransfer.files[0]); }}
+            onClick={() => fileRef.current.click()}
+            style={{ border: `2px dashed ${dragOver ? C.orange : C.gray300}`, background: dragOver ? C.orangeLight : C.gray50, borderRadius: "10px", padding: "48px", textAlign: "center", cursor: "pointer", transition: "all 0.15s", marginBottom: "20px" }}>
+            <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => e.target.files[0] && processFile(e.target.files[0])} />
+            <div style={{ fontSize: "32px", marginBottom: "10px" }}>📁</div>
+            <div style={{ fontWeight: "600", fontSize: "15px", color: C.black, marginBottom: "4px" }}>{file ? file.name : "Drop CSV here or click to browse"}</div>
+            <div style={{ fontSize: "12px", color: C.gray500 }}>Accepts .csv files only</div>
+          </div>
+          {uploading && <div style={{ background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.orange, fontWeight: "600", marginBottom: "16px" }}>Processing CSV...</div>}
+          {uploadError && <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.red, marginBottom: "16px" }}><strong>Error:</strong> {uploadError}</div>}
+          {result && (
+            <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "8px", padding: "14px 18px", marginBottom: "20px" }}>
+              <div style={{ color: C.green, fontWeight: "700", marginBottom: "2px" }}>✓ Upload successful</div>
+              <div style={{ color: C.gray700, fontSize: "13px" }}>{result.count} consultant invoice(s) created and ready for review.</div>
+            </div>
+          )}
+          {result?.rows?.length > 0 && (
+            <div style={{ marginBottom: "28px", border: `1px solid ${C.gray100}`, borderRadius: "8px", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead style={{ background: C.gray50 }}>
+                  <tr>{["Consultant ID", "Invoice No", "Period", "Prof. Fee", "TDS", "Net Payable"].map(h => <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "10px", fontWeight: "700", color: C.gray500, letterSpacing: "0.5px", textTransform: "uppercase" }}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {result.rows.map((row, i) => {
+                    const fee = +row.professional_fee || 0, inc = +row.incentive || 0, vari = +row.variable || 0, tds = +row.tds || 0, reimb = +row.reimbursement || 0;
+                    const net = fee + inc + vari - tds + reimb;
+                    return (
+                      <tr key={i} style={{ borderTop: `1px solid ${C.gray100}` }}>
+                        <td style={{ padding: "10px 14px", ...mono, color: C.orange, fontWeight: "600" }}>{row.consultant_id}</td>
+                        <td style={{ padding: "10px 14px", ...mono }}>{row.invoice_no}</td>
+                        <td style={{ padding: "10px 14px" }}>{row.billing_period}</td>
+                        <td style={{ padding: "10px 14px", ...mono }}>{inr(fee)}</td>
+                        <td style={{ padding: "10px 14px", ...mono, color: C.red }}>-{inr(tds)}</td>
+                        <td style={{ padding: "10px 14px", ...mono, fontWeight: "700" }}>{inr(net)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "20px 24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
+              <div>
+                <div style={{ fontWeight: "600", fontSize: "14px", color: C.black, marginBottom: "3px" }}>CSV Template</div>
+                <div style={{ fontSize: "12px", color: C.gray500 }}>Required columns for the upload to work.</div>
+              </div>
+              <OrangeBtn onClick={downloadCSVTemplate}>Download Template</OrangeBtn>
+            </div>
+            <div style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "6px", padding: "12px 14px", overflowX: "auto" }}>
+              <code style={{ fontSize: "11px", color: C.gray700, ...mono, whiteSpace: "nowrap" }}>
+                consultant_id, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
+              </code>
+            </div>
+            <div style={{ marginTop: "12px", fontSize: "11px", color: C.gray500, lineHeight: "1.7" }}>
+              <strong>Note:</strong> Bank columns are optional. Consultant must have signed in at least once before their invoice can be created.
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* ── Overview tab ── */}
       {tab === "overview" && (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
-
           {/* Summary cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "32px" }}>
             {[
-              { label: "Total Payout", value: inr(totalPayout), highlight: false, big: true },
+              { label: "Total Payout", value: inr(totalPayout), color: C.black, big: true },
               { label: "Pending", value: pendingCount, highlight: pendingCount > 0, color: C.orange },
               { label: "Sent", value: sentCount, color: C.green },
               { label: "Paid", value: paidCount, color: C.blue },
             ].map(({ label, value, highlight, color, big }) => (
               <div key={label} style={{ border: `1px solid ${highlight ? C.orange : C.gray100}`, background: highlight ? C.orangeLight : C.gray50, borderRadius: "8px", padding: "18px 20px" }}>
                 <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "1px", color: color || C.gray500, textTransform: "uppercase", marginBottom: "6px" }}>{label}</div>
-                <div style={{ fontSize: big ? "20px" : "26px", fontWeight: "700", ...serif, color: color || C.black, ...(big ? mono : {}) }}>{value}</div>
+                <div style={{ fontSize: big ? "18px" : "26px", fontWeight: "700", ...serif, color: color || C.black, ...(big ? mono : {}) }}>{value}</div>
               </div>
             ))}
           </div>
@@ -733,10 +837,10 @@ function AdminDashboard({ currentUser }) {
           </div>
 
           {/* Table */}
-          {loading ? (
+          {loadingInvoices ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300 }}>Loading invoices...</div>
-          ) : error ? (
-            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "16px", color: C.red }}>{error}</div>
+          ) : fetchError ? (
+            <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "16px", color: C.red }}>{fetchError}</div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300, fontSize: "14px" }}>No invoices found.</div>
           ) : (
@@ -750,42 +854,39 @@ function AdminDashboard({ currentUser }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((inv, i) => {
-                    const net = calcNet(inv);
-                    return (
-                      <tr key={inv.id} style={{ borderTop: `1px solid ${C.gray100}`, background: i % 2 === 0 ? C.white : C.gray50 }}>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ fontWeight: "600", fontSize: "13px" }}>{inv.consultant_name}</div>
-                          <div style={{ fontSize: "11px", color: C.gray500 }}>{inv.consultant_email}</div>
-                        </td>
-                        <td style={{ padding: "12px 16px", ...mono, color: C.orange, fontWeight: "600" }}>{inv.consultant_id}</td>
-                        <td style={{ padding: "12px 16px", fontWeight: "500" }}>{inv.billing_period}</td>
-                        <td style={{ padding: "12px 16px", ...mono, fontSize: "12px", color: C.gray500 }}>{inv.invoice_no}</td>
-                        <td style={{ padding: "12px 16px", ...mono, fontWeight: "700" }}>{inr(net)}</td>
-                        <td style={{ padding: "12px 16px" }}><Badge status={inv.status} /></td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                            <button onClick={() => setSelectedInvoice(inv)}
-                              style={{ padding: "5px 10px", background: C.gray100, border: "none", borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
-                              View
+                  {filtered.map((inv, i) => (
+                    <tr key={inv.id} style={{ borderTop: `1px solid ${C.gray100}`, background: i % 2 === 0 ? C.white : C.gray50 }}>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ fontWeight: "600", fontSize: "13px" }}>{inv.consultant_name}</div>
+                        <div style={{ fontSize: "11px", color: C.gray500 }}>{inv.consultant_email}</div>
+                      </td>
+                      <td style={{ padding: "12px 16px", ...mono, color: C.orange, fontWeight: "600" }}>{inv.consultant_id}</td>
+                      <td style={{ padding: "12px 16px", fontWeight: "500" }}>{inv.billing_period}</td>
+                      <td style={{ padding: "12px 16px", ...mono, fontSize: "12px", color: C.gray500 }}>{inv.invoice_no}</td>
+                      <td style={{ padding: "12px 16px", ...mono, fontWeight: "700" }}>{inr(calcNet(inv))}</td>
+                      <td style={{ padding: "12px 16px" }}><Badge status={inv.status} /></td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          <button onClick={() => setSelectedInvoice(inv)}
+                            style={{ padding: "5px 10px", background: C.gray100, border: "none", borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
+                            View
+                          </button>
+                          {inv.status === "sent" && (
+                            <button onClick={() => handleMarkPaid(inv.id)}
+                              style={{ padding: "5px 10px", background: C.blueLight, border: `1px solid ${C.blueBorder}`, color: C.blue, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
+                              Mark Paid
                             </button>
-                            {inv.status === "sent" && (
-                              <button onClick={() => handleMarkPaid(inv.id)}
-                                style={{ padding: "5px 10px", background: C.blueLight, border: `1px solid ${C.blueBorder}`, color: C.blue, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
-                                Mark Paid
-                              </button>
-                            )}
-                            {inv.status === "pending" && (
-                              <button onClick={() => handleSendReminder(inv)}
-                                style={{ padding: "5px 10px", background: reminderSent[inv.id] ? C.greenLight : C.orangeLight, border: `1px solid ${reminderSent[inv.id] ? C.greenBorder : C.orangeBorder}`, color: reminderSent[inv.id] ? C.green : C.orange, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
-                                {reminderSent[inv.id] ? "✓ Sent" : reminderSending[inv.id] ? "..." : "Remind"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          )}
+                          {inv.status === "pending" && (
+                            <button onClick={() => handleSendReminder(inv)}
+                              style={{ padding: "5px 10px", background: reminderSent[inv.id] ? C.greenLight : C.orangeLight, border: `1px solid ${reminderSent[inv.id] ? C.greenBorder : C.orangeBorder}`, color: reminderSent[inv.id] ? C.green : C.orange, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
+                              {reminderSent[inv.id] ? "✓ Sent" : reminderSending[inv.id] ? "..." : "Remind"}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -796,88 +897,10 @@ function AdminDashboard({ currentUser }) {
   );
 }
 
-// ─── Admin Upload (extracted) ─────────────────────────────────────────────────
-function AdminUpload() {
-  const [dragOver, setDragOver] = useState(false);
-  const [file, setFile] = useState(null);
-  const [result, setResult] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState(null);
-  const fileRef = useRef();
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT
+// ─────────────────────────────────────────────────────────────────────────────
 
-  async function processFile(f) {
-    setFile(f); setResult(null); setError(null); setUploading(true);
-    try { const res = await uploadPaymentCSV(f); setResult(res); } catch (e) { setError(e.message); }
-    setUploading(false);
-  }
-
-  return (
-    <div style={{ maxWidth: "720px", margin: "0 auto", padding: "36px 24px" }}>
-      <div style={{ marginBottom: "32px" }}>
-        <div style={{ fontSize: "28px", ...serif, color: C.black, marginBottom: "6px" }}>Monthly Upload</div>
-        <div style={{ color: C.gray500, fontSize: "14px" }}>Upload the payroll CSV to pre-fill invoices for all consultants this month.</div>
-      </div>
-      <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); e.dataTransfer.files[0] && processFile(e.dataTransfer.files[0]); }}
-        onClick={() => fileRef.current.click()}
-        style={{ border: `2px dashed ${dragOver ? C.orange : C.gray300}`, background: dragOver ? C.orangeLight : C.gray50, borderRadius: "10px", padding: "48px", textAlign: "center", cursor: "pointer", transition: "all 0.15s", marginBottom: "20px" }}>
-        <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => e.target.files[0] && processFile(e.target.files[0])} />
-        <div style={{ fontSize: "32px", marginBottom: "10px" }}>📁</div>
-        <div style={{ fontWeight: "600", fontSize: "15px", color: C.black, marginBottom: "4px" }}>{file ? file.name : "Drop CSV here or click to browse"}</div>
-        <div style={{ fontSize: "12px", color: C.gray500 }}>Accepts .csv files only</div>
-      </div>
-      {uploading && <div style={{ background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.orange, fontWeight: "600", marginBottom: "16px" }}>Processing CSV...</div>}
-      {error && <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "8px", padding: "14px 18px", color: C.red, marginBottom: "16px" }}><strong>Error:</strong> {error}</div>}
-      {result && (
-        <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "8px", padding: "14px 18px", marginBottom: "20px" }}>
-          <div style={{ color: C.green, fontWeight: "700", marginBottom: "2px" }}>✓ Upload successful</div>
-          <div style={{ color: C.gray700, fontSize: "13px" }}>{result.count} invoice(s) created and ready for consultant review.</div>
-        </div>
-      )}
-      {result?.rows?.length > 0 && (
-        <div style={{ marginBottom: "28px", border: `1px solid ${C.gray100}`, borderRadius: "8px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-            <thead style={{ background: C.gray50 }}>
-              <tr>{["Consultant ID", "Invoice No", "Period", "Prof. Fee", "TDS", "Net Payable"].map(h => <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "10px", fontWeight: "700", color: C.gray500, textTransform: "uppercase" }}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {result.rows.map((row, i) => {
-                const fee = +row.professional_fee || 0, inc = +row.incentive || 0, vari = +row.variable || 0, tds = +row.tds || 0, reimb = +row.reimbursement || 0;
-                const net = fee + inc + vari - tds + reimb;
-                return (
-                  <tr key={i} style={{ borderTop: `1px solid ${C.gray100}` }}>
-                    <td style={{ padding: "10px 14px", ...mono, color: C.orange, fontWeight: "600" }}>{row.consultant_id}</td>
-                    <td style={{ padding: "10px 14px", ...mono }}>{row.invoice_no}</td>
-                    <td style={{ padding: "10px 14px" }}>{row.billing_period}</td>
-                    <td style={{ padding: "10px 14px", ...mono }}>{inr(fee)}</td>
-                    <td style={{ padding: "10px 14px", ...mono, color: C.red }}>-{inr(tds)}</td>
-                    <td style={{ padding: "10px 14px", ...mono, fontWeight: "700" }}>{inr(net)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div style={{ background: C.gray50, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "20px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
-          <div>
-            <div style={{ fontWeight: "600", fontSize: "14px", color: C.black, marginBottom: "3px" }}>CSV Template</div>
-            <div style={{ fontSize: "12px", color: C.gray500 }}>Required columns for the upload to work.</div>
-          </div>
-          <OrangeBtn onClick={downloadCSVTemplate} small>Download Template</OrangeBtn>
-        </div>
-        <div style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "6px", padding: "12px 14px", overflowX: "auto" }}>
-          <code style={{ fontSize: "11px", color: C.gray700, ...mono, whiteSpace: "nowrap" }}>
-            consultant_id, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
-          </code>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [user, setUser] = useState(null);
@@ -888,7 +911,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
-  useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
+  useEffect(() => {
+    document.body.classList.toggle("dark", darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     let mounted = true;
@@ -898,7 +923,9 @@ export default function App() {
         console.log("loadUser started:", session?.user?.email);
         const consultant = await fetchConsultant(session.user.email);
         console.log("consultant fetched:", consultant);
+
         if (!mounted) return;
+
         if (consultant) {
           setUser(consultant);
           const inv = await fetchInvoices();
@@ -916,12 +943,6 @@ export default function App() {
         if (mounted) setLoading(false);
       }
     }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("getSession result:", session?.user?.email);
-      if (session) { loadUser(session); }
-      else if (mounted) { setScreen("login"); setLoading(false); }
-    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("auth event:", event, session?.user?.email);
@@ -948,7 +969,8 @@ export default function App() {
 
   function handleSent() {
     setInvoices(prev => prev.map(i => i.id === activeInvoice.id ? { ...i, status: "sent", sent_at: new Date().toISOString() } : i));
-    setActiveInvoice(null); setScreen("dashboard");
+    setActiveInvoice(null);
+    setScreen("dashboard");
   }
 
   function handleUpdate(updatedInvoice) {
@@ -972,40 +994,44 @@ export default function App() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #F8F8F8; }
-        input { outline: none; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        body.dark { background: #111; filter: invert(1) hue-rotate(180deg); }
-        @media print { .no-print { display: none !important; } }
-      `}</style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  input { outline: none; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  body.dark { background: #111; filter: invert(1) hue-rotate(180deg); }
+  body.dark img, body.dark [style*="background: #E85D04"], body.dark [style*="background:#E85D04"] { filter: invert(1) hue-rotate(180deg); }
+`}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
 
       {screen === "onboarding" && user && (
-        <OnboardingScreen user={user} onComplete={(u) => { setUser(u); setScreen("dashboard"); }} />
+        <OnboardingScreen user={user} onComplete={(updatedUser) => { setUser(updatedUser); setScreen("dashboard"); }} />
       )}
 
       {screen !== "login" && screen !== "onboarding" && (
         <div style={{ minHeight: "100vh", background: C.white }}>
-          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin}
-            onToggleAdmin={() => setIsAdmin(a => !a)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
-
+          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); }} darkMode={darkMode}
+            onToggleDark={() => setDarkMode(d => !d)} />
           {isAdmin
-            ? <AdminDashboard currentUser={user} />
+            ? <AdminScreen />
             : screen === "dashboard"
               ? <Dashboard user={user} invoices={invoices} onOpen={handleOpen} />
               : screen === "invoice" && activeInvoice
                 ? <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} onUpdate={handleUpdate} />
                 : null
           }
-
           {showProfile && (
-            <ProfileDrawer user={user} onClose={() => setShowProfile(false)}
-              onSignOut={async () => { await supabase.auth.signOut(); setUser(null); setScreen("login"); setShowProfile(false); }} />
+            <ProfileDrawer
+              user={user}
+              onClose={() => setShowProfile(false)}
+              onSignOut={async () => {
+                await supabase.auth.signOut();
+                setUser(null); setScreen("login"); setShowProfile(false);
+              }}
+            />
           )}
         </div>
       )}
