@@ -1025,6 +1025,8 @@ export default function App() {
         if (!mounted) return;
 
         if (consultant) {
+          console.log("is_admin value:", consultant.is_admin); // ← add this
+          console.log("ng_is_admin in storage:", localStorage.getItem("ng_is_admin")); // ← add this
           setUser(consultant);
           const inv = await fetchInvoices();
           if (!mounted) return;
