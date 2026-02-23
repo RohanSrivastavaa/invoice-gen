@@ -1006,18 +1006,28 @@ function AdminScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState("login");
+  const [screen, setScreen] = useState(() => localStorage.getItem("ng_screen") || "login");
   const [user, setUser] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem("ng_is_admin") === "true");
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
+
+  useEffect(() => {
+    if (screen !== "login" && screen !== "onboarding") {
+      localStorage.setItem("ng_screen", screen);
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    localStorage.setItem("ng_is_admin", isAdmin);
+  }, [isAdmin]);
 
   useEffect(() => {
     let mounted = true;
@@ -1036,6 +1046,10 @@ export default function App() {
           if (!mounted) return;
           setInvoices(inv);
           setScreen(consultant.consultant_id ? "dashboard" : "onboarding");
+          // Auto-restore admin view for admin users
+          if (consultant.is_admin && localStorage.getItem("ng_is_admin") === "true") {
+            setIsAdmin(true);
+          }
         } else {
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
           setScreen("onboarding");
@@ -1133,6 +1147,8 @@ export default function App() {
               onClose={() => setShowProfile(false)}
               onSignOut={async () => {
                 await supabase.auth.signOut();
+                localStorage.removeItem("ng_screen");
+                localStorage.removeItem("ng_is_admin");
                 setUser(null); setScreen("login"); setShowProfile(false);
               }}
             />
