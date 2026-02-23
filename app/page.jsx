@@ -360,11 +360,8 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDar
             {isAdmin ? "← Consultant view" : "Admin →"}
           </button>
         )}
-        <button
-          onClick={onToggleDark}
-          title="Toggle dark mode"
-          style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "5px 10px", cursor: "pointer", fontSize: "13px", lineHeight: 1 }}
-        >
+        <button onClick={onToggleDark} title="Toggle dark mode"
+          style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "5px 10px", cursor: "pointer", fontSize: "13px", lineHeight: 1 }}>
           {darkMode ? "☀️" : "🌙"}
         </button>
         {user && (
@@ -450,7 +447,6 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   const [draft, setDraft] = useState(invoice);
 
   useEffect(() => { setDraft(invoice); }, [invoice]);
-
   const net = calcNet(draft);
 
   async function handleSend() {
@@ -460,10 +456,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       await sendInvoice(draft.id, session?.provider_token);
       setState("sent");
       setTimeout(onSent, 2000);
-    } catch (err) {
-      console.error("Send error:", err);
-      setState("error");
-    }
+    } catch (err) { console.error("Send error:", err); setState("error"); }
   }
 
   async function saveEdits() {
@@ -483,9 +476,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       if (error) throw error;
       setIsEditing(false);
       if (onUpdate) onUpdate({ ...draft, ...updates });
-    } catch (err) {
-      alert("Error saving edits: " + err.message);
-    }
+    } catch (err) { alert("Error saving edits: " + err.message); }
     setSavingEdit(false);
   }
 
@@ -494,9 +485,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
       <div style={{ flex: 1, overflow: "auto", padding: "36px 32px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-        <div id="invoice-document">
-          <InvoiceDocument invoice={draft} user={user} />
-        </div>
+        <div id="invoice-document"><InvoiceDocument invoice={draft} user={user} /></div>
       </div>
       <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -514,11 +503,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
         </div>
         {isEditing ? (
           <div style={{ background: C.orangeLight, padding: "16px", borderRadius: "8px", border: `1px solid ${C.orangeBorder}`, marginBottom: "24px" }}>
-            {[
-              ["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"],
-              ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"],
-              ["Working Days", "working_days"], ["LOP Days", "lop_days"]
-            ].map(([l, key]) => (
+            {[["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"], ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"], ["Working Days", "working_days"], ["LOP Days", "lop_days"]].map(([l, key]) => (
               <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <span style={{ fontSize: "11px", color: C.gray700, fontWeight: "500" }}>{l}</span>
                 <input type="number" value={draft[key] || ""} onChange={e => setDraft({ ...draft, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.gray300} />
@@ -639,7 +624,6 @@ function AdminScreen() {
   const [reminderSending, setReminderSending] = useState({});
   const [reminderSent, setReminderSent] = useState({});
   const [allConsultants, setAllConsultants] = useState([]);
-
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
@@ -764,7 +748,6 @@ function AdminScreen() {
         ))}
       </div>
 
-      {/* ── Upload tab ── */}
       {tab === "upload" && (
         <div style={{ maxWidth: "720px", margin: "0 auto", padding: "36px 24px" }}>
           <div style={{ marginBottom: "32px" }}>
@@ -833,7 +816,6 @@ function AdminScreen() {
         </div>
       )}
 
-      {/* ── Consultants tab ── */}
       {tab === "consultants" && (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px", marginBottom: "32px" }}>
@@ -884,12 +866,7 @@ function AdminScreen() {
                           {c.bank_ifsc || <span style={{ color: C.red }}>Missing</span>}
                         </td>
                         <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            background: complete ? C.greenLight : C.orangeLight,
-                            color: complete ? C.green : C.orange,
-                            border: `1px solid ${complete ? C.greenBorder : C.orangeBorder}`,
-                            borderRadius: "4px", padding: "3px 9px", fontSize: "11px", fontWeight: "600", ...mono
-                          }}>
+                          <span style={{ background: complete ? C.greenLight : C.orangeLight, color: complete ? C.green : C.orange, border: `1px solid ${complete ? C.greenBorder : C.orangeBorder}`, borderRadius: "4px", padding: "3px 9px", fontSize: "11px", fontWeight: "600", ...mono }}>
                             {complete ? "Complete" : "Incomplete"}
                           </span>
                         </td>
@@ -903,7 +880,6 @@ function AdminScreen() {
         </div>
       )}
 
-      {/* ── Overview tab ── */}
       {tab === "overview" && (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "32px" }}>
@@ -927,9 +903,7 @@ function AdminScreen() {
                 </button>
               ))}
             </div>
-            <button onClick={fetchAllInvoices} style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "6px", padding: "6px 14px", fontSize: "12px", color: C.gray500, cursor: "pointer", ...sans }}>
-              ↻ Refresh
-            </button>
+            <button onClick={fetchAllInvoices} style={{ background: "none", border: `1px solid ${C.gray300}`, borderRadius: "6px", padding: "6px 14px", fontSize: "12px", color: C.gray500, cursor: "pointer", ...sans }}>↻ Refresh</button>
           </div>
           {loadingInvoices ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300 }}>Loading invoices...</div>
@@ -961,19 +935,12 @@ function AdminScreen() {
                       <td style={{ padding: "12px 16px" }}><Badge status={inv.status} /></td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          <button onClick={() => setSelectedInvoice(inv)}
-                            style={{ padding: "5px 10px", background: C.gray100, border: "none", borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
-                            View
-                          </button>
+                          <button onClick={() => setSelectedInvoice(inv)} style={{ padding: "5px 10px", background: C.gray100, border: "none", borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>View</button>
                           {inv.status === "sent" && (
-                            <button onClick={() => handleMarkPaid(inv.id)}
-                              style={{ padding: "5px 10px", background: C.blueLight, border: `1px solid ${C.blueBorder}`, color: C.blue, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
-                              Mark Paid
-                            </button>
+                            <button onClick={() => handleMarkPaid(inv.id)} style={{ padding: "5px 10px", background: C.blueLight, border: `1px solid ${C.blueBorder}`, color: C.blue, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>Mark Paid</button>
                           )}
                           {inv.status === "pending" && (
-                            <button onClick={() => handleSendReminder(inv)}
-                              style={{ padding: "5px 10px", background: reminderSent[inv.id] ? C.greenLight : C.orangeLight, border: `1px solid ${reminderSent[inv.id] ? C.greenBorder : C.orangeBorder}`, color: reminderSent[inv.id] ? C.green : C.orange, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
+                            <button onClick={() => handleSendReminder(inv)} style={{ padding: "5px 10px", background: reminderSent[inv.id] ? C.greenLight : C.orangeLight, border: `1px solid ${reminderSent[inv.id] ? C.greenBorder : C.orangeBorder}`, color: reminderSent[inv.id] ? C.green : C.orange, borderRadius: "5px", fontSize: "11px", cursor: "pointer", fontWeight: "600", ...sans }}>
                               {reminderSent[inv.id] ? "✓ Sent" : reminderSending[inv.id] ? "..." : "Remind"}
                             </button>
                           )}
@@ -1004,15 +971,14 @@ export default function App() {
 
   useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
 
-  // ── Persist screen to localStorage whenever it changes ──
+  // Persist screen (but never "login" or "onboarding")
   useEffect(() => {
     if (screen !== "login" && screen !== "onboarding") {
       localStorage.setItem("ng_screen", screen);
     }
   }, [screen]);
 
-  // ── Persist isAdmin to localStorage whenever it changes ──
-  // ── Persist isAdmin to localStorage only after auth is resolved ──
+  // Persist isAdmin — but only AFTER auth has resolved to avoid overwriting with false on startup
   useEffect(() => {
     if (!loading) {
       localStorage.setItem("ng_is_admin", String(isAdmin));
@@ -1028,19 +994,26 @@ export default function App() {
         if (!mounted) return;
 
         if (consultant) {
-          console.log("is_admin value:", consultant.is_admin); // ← add this
-          console.log("ng_is_admin in storage:", localStorage.getItem("ng_is_admin")); // ← add this
           setUser(consultant);
           const inv = await fetchInvoices();
           if (!mounted) return;
           setInvoices(inv);
 
-          // Restore admin state FIRST — before setScreen to avoid flash
-          if (consultant.is_admin && localStorage.getItem("ng_is_admin") === "true") {
-            setIsAdmin(true);
+          // Determine admin state:
+          // - If is_admin and previously had admin on → restore it
+          // - If is_admin and no saved preference (first ever login) → default to admin view
+          // - If not is_admin → never admin
+          if (consultant.is_admin) {
+            const savedAdmin = localStorage.getItem("ng_is_admin");
+            // null means never set before (first login) → auto-open admin
+            // "true" means they had it on → restore
+            // "false" means they explicitly switched to consultant view → respect that
+            if (savedAdmin === null || savedAdmin === "true") {
+              setIsAdmin(true);
+            }
           }
 
-          // Then restore screen
+          // Restore saved screen
           const savedScreen = localStorage.getItem("ng_screen");
           const validScreens = ["dashboard", "invoice"];
           setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
@@ -1052,7 +1025,7 @@ export default function App() {
         console.error("Load user error:", err);
         if (mounted) setScreen("login");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setTimeout(() => setLoading(false), 0);
       }
     }
 
