@@ -655,11 +655,13 @@ function AdminScreen() {
   async function handleSendReminder(inv) {
     setReminderSending(s => ({ ...s, [inv.id]: true }));
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/send-reminder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inv.consultant_email, name: inv.consultant_name, period: inv.billing_period }),
+        body: JSON.stringify({ email: inv.consultant_email, name: inv.consultant_name, period: inv.billing_period, accessToken: session?.provider_token }),
       });
+
       if (!res.ok) throw new Error("Failed");
       setReminderSent(s => ({ ...s, [inv.id]: true }));
       setTimeout(() => setReminderSent(s => ({ ...s, [inv.id]: false })), 3000);
