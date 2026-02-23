@@ -412,16 +412,15 @@ function Dashboard({ user, invoices, onOpen }) {
         )}
         {list.map(inv => {
           const net = calcNet(inv);
-          const clickable = true; // Allow clicking on all invoices
           return (
-            <div key={inv.id} onClick={() => clickable && onOpen(inv)}
-              style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: clickable ? "pointer" : "default", transition: "border-color 0.15s, box-shadow 0.15s" }}
-              onMouseEnter={e => { if (clickable) { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.orangeLight}`; } }}
+            <div key={inv.id} onClick={() => onOpen(inv)}
+              style={{ background: C.white, border: `1px solid ${C.gray100}`, borderRadius: "8px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.orangeLight}`; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = C.gray100; e.currentTarget.style.boxShadow = "none"; }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <div style={{ width: "42px", height: "42px", background: clickable ? C.orangeLight : C.gray100, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", flexShrink: 0 }}>
-                  {clickable ? "📄" : "✓"}
+                <div style={{ width: "42px", height: "42px", background: inv.status === "pending" ? C.orangeLight : C.gray100, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", flexShrink: 0 }}>
+                  {inv.status === "pending" ? "📄" : "✓"}
                 </div>
                 <div>
                   <div style={{ fontWeight: "600", fontSize: "14px", color: C.black, marginBottom: "2px" }}>{inv.billing_period}</div>
@@ -434,7 +433,7 @@ function Dashboard({ user, invoices, onOpen }) {
                   <div style={{ fontSize: "10px", color: C.gray500 }}>net payable</div>
                 </div>
                 <Badge status={inv.status} />
-                {clickable && <span style={{ color: C.orange, fontSize: "16px" }}>→</span>}
+                <span style={{ color: C.orange, fontSize: "16px" }}>→</span>
               </div>
             </div>
           );
@@ -629,7 +628,7 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
   );
 }
 
-// ─── Admin Screen (tabbed: Overview + Upload CSV) ─────────────────────────────
+// ─── Admin Screen ─────────────────────────────────────────────────────────────
 function AdminScreen() {
   const [tab, setTab] = useState("overview");
   const [allInvoices, setAllInvoices] = useState([]);
@@ -641,7 +640,6 @@ function AdminScreen() {
   const [reminderSent, setReminderSent] = useState({});
   const [allConsultants, setAllConsultants] = useState([]);
 
-  // CSV upload state
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
@@ -650,7 +648,7 @@ function AdminScreen() {
   const fileRef = useRef();
 
   useEffect(() => {
-    if (tab === "overview") fetchAllInvoices();
+    if (tab === "overview" || tab === "consultants") fetchAllInvoices();
   }, [tab]);
 
   async function fetchAllInvoices() {
@@ -688,7 +686,6 @@ function AdminScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: inv.consultant_email, name: inv.consultant_name, period: inv.billing_period, accessToken: session?.provider_token }),
       });
-
       if (!res.ok) throw new Error("Failed");
       setReminderSent(s => ({ ...s, [inv.id]: true }));
       setTimeout(() => setReminderSent(s => ({ ...s, [inv.id]: false })), 3000);
@@ -708,7 +705,6 @@ function AdminScreen() {
   const sentCount = allInvoices.filter(i => i.status === "sent").length;
   const paidCount = allInvoices.filter(i => i.status === "paid").length;
 
-  // Invoice detail view (when a row is clicked)
   if (selectedInvoice) {
     return (
       <div style={{ display: "flex", minHeight: "calc(100vh - 56px)", background: C.gray50, ...sans }}>
@@ -718,8 +714,10 @@ function AdminScreen() {
           </div>
         </div>
         <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <GhostBtn onClick={() => setSelectedInvoice(null)}>← Back to Overview</GhostBtn>
-          <PDFBtn invoiceId={selectedInvoice.id} invoiceNo={selectedInvoice.invoice_no} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <GhostBtn onClick={() => setSelectedInvoice(null)}>← Back to Overview</GhostBtn>
+            <PDFBtn invoiceId={selectedInvoice.id} invoiceNo={selectedInvoice.invoice_no} />
+          </div>
           <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{selectedInvoice.billing_period}</div>
           <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "2px" }}>{selectedInvoice.invoice_no}</div>
           <div style={{ fontSize: "12px", color: C.gray700, marginBottom: "20px" }}>{selectedInvoice.consultant_name}</div>
@@ -758,7 +756,6 @@ function AdminScreen() {
 
   return (
     <div style={{ ...sans }}>
-      {/* Tab bar */}
       <div style={{ borderBottom: `1px solid ${C.gray100}`, display: "flex", padding: "0 32px", background: C.white }}>
         {[["overview", "Overview"], ["consultants", "Consultants"], ["upload", "Upload CSV"]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 16px", fontSize: "13px", fontWeight: "600", color: tab === key ? C.black : C.gray500, borderBottom: `2px solid ${tab === key ? C.orange : "transparent"}`, marginBottom: "-1px", ...sans }}>
@@ -836,9 +833,9 @@ function AdminScreen() {
         </div>
       )}
 
+      {/* ── Consultants tab ── */}
       {tab === "consultants" && (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
-          {/* Summary cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px", marginBottom: "32px" }}>
             {[
               { label: "Total Registered", value: allConsultants.length, color: C.black },
@@ -851,8 +848,6 @@ function AdminScreen() {
               </div>
             ))}
           </div>
-
-          {/* Consultants table */}
           {loadingInvoices ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300 }}>Loading...</div>
           ) : allConsultants.length === 0 ? (
@@ -911,7 +906,6 @@ function AdminScreen() {
       {/* ── Overview tab ── */}
       {tab === "overview" && (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "36px 24px" }}>
-          {/* Summary cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "32px" }}>
             {[
               { label: "Total Payout", value: inr(totalPayout), color: C.black, big: true },
@@ -925,8 +919,6 @@ function AdminScreen() {
               </div>
             ))}
           </div>
-
-          {/* Filter + Refresh */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <div style={{ display: "flex", gap: "8px" }}>
               {[["all", "All"], ["pending", "Pending"], ["sent", "Sent"], ["paid", "Paid"]].map(([key, label]) => (
@@ -939,8 +931,6 @@ function AdminScreen() {
               ↻ Refresh
             </button>
           </div>
-
-          {/* Table */}
           {loadingInvoices ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.gray300 }}>Loading invoices...</div>
           ) : fetchError ? (
@@ -1001,10 +991,7 @@ function AdminScreen() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROOT
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [user, setUser] = useState(null);
@@ -1015,19 +1002,26 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
+  useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
+
+  // ── Persist screen to localStorage whenever it changes ──
   useEffect(() => {
-    document.body.classList.toggle("dark", darkMode);
-  }, [darkMode]);
+    if (screen !== "login" && screen !== "onboarding") {
+      localStorage.setItem("ng_screen", screen);
+    }
+  }, [screen]);
+
+  // ── Persist isAdmin to localStorage whenever it changes ──
+  useEffect(() => {
+    localStorage.setItem("ng_is_admin", String(isAdmin));
+  }, [isAdmin]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadUser(session) {
       try {
-        console.log("loadUser started:", session?.user?.email);
         const consultant = await fetchConsultant(session.user.email);
-        console.log("consultant fetched:", consultant);
-
         if (!mounted) return;
 
         if (consultant) {
@@ -1041,7 +1035,7 @@ export default function App() {
           const validScreens = ["dashboard", "invoice"];
           setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
 
-          // Restore admin state
+          // Restore admin state — only if user is actually an admin
           if (consultant.is_admin && localStorage.getItem("ng_is_admin") === "true") {
             setIsAdmin(true);
           }
@@ -1058,14 +1052,9 @@ export default function App() {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("auth event:", event, session?.user?.email);
-
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-        if (session) {
-          loadUser(session);
-        } else {
-          if (mounted) { setScreen("login"); setLoading(false); }
-        }
+        if (session) { loadUser(session); }
+        else if (mounted) { setScreen("login"); setLoading(false); }
       } else if (event === "SIGNED_OUT") {
         if (mounted) { setUser(null); setInvoices([]); setScreen("login"); setLoading(false); }
       }
@@ -1113,7 +1102,6 @@ export default function App() {
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 2px; }
   ::-webkit-scrollbar-track { background: transparent; }
-
   body.dark { background: #111; filter: invert(1) hue-rotate(180deg); }
   body.dark img, body.dark [style*="background: #E85D04"], body.dark [style*="background:#E85D04"] { filter: invert(1) hue-rotate(180deg); }
 `}</style>
@@ -1126,8 +1114,9 @@ export default function App() {
 
       {screen !== "login" && screen !== "onboarding" && (
         <div style={{ minHeight: "100vh", background: C.white }}>
-          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => { setIsAdmin(a => !a); }} darkMode={darkMode}
-            onToggleDark={() => setDarkMode(d => !d)} />
+          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin}
+            onToggleAdmin={() => setIsAdmin(a => !a)}
+            darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
           {isAdmin
             ? <AdminScreen />
             : screen === "dashboard"
@@ -1137,9 +1126,7 @@ export default function App() {
                 : null
           }
           {showProfile && (
-            <ProfileDrawer
-              user={user}
-              onClose={() => setShowProfile(false)}
+            <ProfileDrawer user={user} onClose={() => setShowProfile(false)}
               onSignOut={async () => {
                 await supabase.auth.signOut();
                 localStorage.removeItem("ng_screen");
