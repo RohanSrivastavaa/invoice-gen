@@ -39,29 +39,6 @@ function downloadCSVTemplate() {
   a.click();
 }
 
-async function downloadInvoicePDF(invoiceNo) {
-  const { default: html2canvas } = await import("html2canvas");
-  const { default: jsPDF } = await import("jspdf");
-  const element = document.getElementById("invoice-document");
-  if (!element) return;
-
-  const canvas = await html2canvas(element, {
-    scale: 1.5,                // ← was 2, brings size down ~40%
-    useCORS: true,
-    backgroundColor: "#ffffff",
-  });
-
-  const imgData = canvas.toDataURL("image/jpeg", 0.85); // ← PNG → JPEG at 85% quality
-  const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "px",
-    format: [canvas.width / 1.5, canvas.height / 1.5],  // ← match new scale
-  });
-
-  pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / 1.5, canvas.height / 1.5);
-  pdf.save(`Invoice-${invoiceNo}.pdf`);
-}
-
 const C = {
   orange: "#E85D04", orangeHover: "#C94E00", orangeLight: "#FFF3EC", orangeBorder: "#FFD0B0",
   black: "#111111", gray700: "#444444", gray500: "#777777", gray300: "#CCCCCC",
@@ -122,13 +99,27 @@ function GhostBtn({ onClick, children }) {
   );
 }
 
-function PDFBtn({ invoiceNo }) {
+function PDFBtn({ invoiceId, invoiceNo }) {
   const [loading, setLoading] = useState(false);
+
   async function handle() {
     setLoading(true);
-    await downloadInvoicePDF(invoiceNo);
+    try {
+      const res = await fetch(`/api/download-invoice?invoiceId=${invoiceId}`);
+      if (!res.ok) throw new Error("Failed to generate PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${invoiceNo}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Could not download PDF: " + err.message);
+    }
     setLoading(false);
   }
+
   return (
     <button onClick={handle} disabled={loading}
       style={{ background: C.gray50, border: `1px solid ${C.gray300}`, borderRadius: "5px", padding: "6px 12px", fontSize: "11px", fontWeight: "600", color: loading ? C.gray300 : C.black, cursor: loading ? "wait" : "pointer", ...sans }}>
@@ -511,7 +502,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
       <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <GhostBtn onClick={onBack}>← Back</GhostBtn>
-          <PDFBtn invoiceNo={draft.invoice_no} />
+          <PDFBtn invoiceId={draft.id} invoiceNo={draft.invoice_no} />
         </div>
         <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{draft.billing_period}</div>
         <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "24px" }}>{draft.invoice_no}</div>
@@ -726,7 +717,7 @@ function AdminScreen() {
         </div>
         <div style={{ width: "320px", background: C.white, borderLeft: `1px solid ${C.gray100}`, padding: "28px 24px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <GhostBtn onClick={() => setSelectedInvoice(null)}>← Back to Overview</GhostBtn>
-          <PDFBtn invoiceNo={selectedInvoice.invoice_no} />
+          <PDFBtn invoiceId={selectedInvoice.id} invoiceNo={selectedInvoice.invoice_no} />
           <div style={{ marginTop: "20px", marginBottom: "4px", fontSize: "22px", ...serif, color: C.black }}>{selectedInvoice.billing_period}</div>
           <div style={{ fontSize: "11px", color: C.gray500, ...mono, marginBottom: "2px" }}>{selectedInvoice.invoice_no}</div>
           <div style={{ fontSize: "12px", color: C.gray700, marginBottom: "20px" }}>{selectedInvoice.consultant_name}</div>
