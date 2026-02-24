@@ -1,19 +1,12 @@
 // app/api/send-invoice/route.js
-// Server-side API route — handles PDF generation, Gmail send, and Supabase update.
-// Called from the frontend when the consultant clicks "Send Invoice".
-//
-// Why server-side?
-//   - The Gmail access token from Supabase OAuth is exchanged here safely
-//   - Supabase service role key (for updating invoice status) never touches the browser
-//   - PDF generation via @react-pdf/renderer works best in Node environment
+// Auth-protected. Verifies the caller owns the invoice before sending.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { InvoicePDF } from "@/lib/InvoicePDF";
 import { createElement } from "react";
-
-// ─── Config ───────────────────────────────────────────────────────────────────
+import { verifySession, AuthError } from "@/lib/auth";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -21,27 +14,23 @@ const COMPANY = {
   financeEmail: process.env.NEXT_PUBLIC_FINANCE_EMAIL,
 };
 
-// Admin Supabase client — bypasses RLS for status updates
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ─── Route Handler ────────────────────────────────────────────────────────────
-
 export async function POST(request) {
   try {
-    // ── 1. Parse request body ──────────────────────────────────────────────────
+    // 1. Verify session
+    const session = await verifySession(request);
+
     const { invoiceId, accessToken } = await request.json();
 
     if (!invoiceId || !accessToken) {
-      return NextResponse.json(
-        { error: "Missing invoiceId or accessToken" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing invoiceId or accessToken" }, { status: 400 });
     }
 
-    // ── 2. Fetch invoice + consultant from Supabase ────────────────────────────
+    // 2. Fetch invoice
     const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from("invoices")
       .select("*")
@@ -52,10 +41,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    // 3. Verify the caller owns this invoice
+    if (invoice.consultant_id !== session.consultantId) {
+      return NextResponse.json({ error: "You are not authorized to send this invoice" }, { status: 403 });
+    }
+
     if (invoice.status === "sent") {
       return NextResponse.json({ error: "Invoice already sent" }, { status: 409 });
     }
 
+    // 4. Fetch consultant
     const { data: consultant, error: consultantError } = await supabaseAdmin
       .from("consultants")
       .select("*")
@@ -66,27 +61,22 @@ export async function POST(request) {
       return NextResponse.json({ error: "Consultant not found" }, { status: 404 });
     }
 
-    // ── 3. Generate PDF buffer ────────────────────────────────────────────────
+    // 5. Generate PDF
     const pdfBuffer = await renderToBuffer(
       createElement(InvoicePDF, { invoice, consultant, company: COMPANY })
     );
 
-    // ── 4. Upload PDF to Supabase Storage ────────────────────────────────────
+    // 6. Upload to Supabase Storage
     const pdfPath = `${consultant.consultant_id}/${invoice.invoice_no}.pdf`;
-
     const { error: uploadError } = await supabaseAdmin.storage
       .from("invoices")
-      .upload(pdfPath, pdfBuffer, {
-        contentType: "application/pdf",
-        upsert: true, // overwrite if re-sending
-      });
+      .upload(pdfPath, pdfBuffer, { contentType: "application/pdf", upsert: true });
 
     if (uploadError) {
       console.error("Storage upload error:", uploadError);
-      // Non-fatal — continue with sending even if storage fails
     }
 
-    // ── 5. Build Gmail RFC 2822 email with PDF attachment ─────────────────────
+    // 7. Build and send Gmail message
     const boundary = `boundary_${Date.now()}`;
     const pdfBase64 = pdfBuffer.toString("base64");
 
@@ -120,14 +110,12 @@ export async function POST(request) {
       `--${boundary}--`,
     ].join("\r\n");
 
-    // Gmail requires base64url encoding (URL-safe, no padding)
     const encodedEmail = Buffer.from(emailBody)
       .toString("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/, "");
 
-    // ── 6. Send via Gmail API ─────────────────────────────────────────────────
     const gmailResponse = await fetch(
       "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
       {
@@ -143,33 +131,15 @@ export async function POST(request) {
     if (!gmailResponse.ok) {
       const gmailError = await gmailResponse.json();
       console.error("Gmail API error:", gmailError);
-
-      // Mark invoice as error in DB
-      await supabaseAdmin
-        .from("invoices")
-        .update({ status: "error" })
-        .eq("id", invoiceId);
-
-      return NextResponse.json(
-        { error: "Failed to send email", details: gmailError },
-        { status: 500 }
-      );
+      await supabaseAdmin.from("invoices").update({ status: "error" }).eq("id", invoiceId);
+      return NextResponse.json({ error: "Failed to send email", details: gmailError }, { status: 500 });
     }
 
-    // ── 7. Mark invoice as sent in Supabase ──────────────────────────────────
-    const { error: updateError } = await supabaseAdmin
+    // 8. Mark as sent
+    await supabaseAdmin
       .from("invoices")
-      .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-        pdf_url: pdfPath,
-      })
+      .update({ status: "sent", sent_at: new Date().toISOString(), pdf_url: pdfPath })
       .eq("id", invoiceId);
-
-    if (updateError) {
-      console.error("Failed to update invoice status:", updateError);
-      // Email was sent successfully — don't fail the request, just log
-    }
 
     return NextResponse.json({
       success: true,
@@ -180,10 +150,10 @@ export async function POST(request) {
     });
 
   } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     console.error("Send invoice error:", err);
-    return NextResponse.json(
-      { error: "Internal server error", details: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
   }
 }

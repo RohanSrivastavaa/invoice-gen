@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, completeOnboarding } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, completeOnboarding, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -658,9 +658,7 @@ function AdminScreen() {
   async function fetchAllInvoices() {
     setLoadingInvoices(true); setFetchError(null);
     try {
-      const res = await fetch("/api/admin-invoices");
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      const json = await fetchAdminInvoices();
       setAllInvoices(json.invoices);
       setAllConsultants(json.consultants || []);
     } catch (err) { setFetchError(err.message); }
@@ -669,9 +667,7 @@ function AdminScreen() {
 
   async function handleMarkPaid(invoiceId) {
     try {
-      const res = await fetch("/api/admin-invoices", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceId, status: "paid" }) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      await markInvoicePaid(invoiceId);
       setAllInvoices(prev => prev.map(i => i.id === invoiceId ? { ...i, status: "paid" } : i));
       if (selectedInvoice?.id === invoiceId) setSelectedInvoice(s => ({ ...s, status: "paid" }));
     } catch (err) { alert("Error: " + err.message); }
@@ -681,8 +677,7 @@ function AdminScreen() {
     setReminderSending(s => ({ ...s, [inv.id]: true }));
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: inv.consultant_email, name: inv.consultant_name, period: inv.billing_period, accessToken: session?.provider_token }) });
-      if (!res.ok) throw new Error("Failed");
+      await sendReminder(inv.consultant_email, inv.consultant_name, inv.billing_period, session?.provider_token);
       setReminderSent(s => ({ ...s, [inv.id]: true }));
       setTimeout(() => setReminderSent(s => ({ ...s, [inv.id]: false })), 3000);
     } catch (err) { alert("Could not send reminder: " + err.message); }
@@ -988,7 +983,7 @@ export default function App() {
         if (!mounted) return;
         if (consultant) {
           setUser(consultant);
-          const inv = await fetchInvoices();
+          const inv = await fetchInvoices(consultant.consultant_id);
           if (!mounted) return;
           setInvoices(inv);
           if (consultant.is_admin) {
