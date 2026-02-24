@@ -276,13 +276,6 @@ function LoginScreen({ onLogin }) {
         {/* Subtle brand orb */}
         <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "220px", height: "220px", background: C.orange, borderRadius: "50%", opacity: 0.12, filter: "blur(40px)" }} />
         <div style={{ position: "absolute", bottom: "80px", left: "-40px", width: "160px", height: "160px", background: C.mint, borderRadius: "50%", opacity: 0.15, filter: "blur(30px)" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
-          <FiteloMark size={32} />
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "13px", fontWeight: "600", letterSpacing: "0.2px" }}>Fitelo</div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase" }}>Invoice Portal</div>
-          </div>
-        </div>
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: "40px", fontWeight: "700", color: C.white, lineHeight: "1.15", marginBottom: "16px", letterSpacing: "-0.5px" }}>
             Your invoices,<br />done in<br /><span style={{ color: C.orange }}>seconds.</span>
@@ -291,7 +284,7 @@ function LoginScreen({ onLogin }) {
             Log in each month, review your pre-filled invoice, and send it to finance with one click.
           </div>
         </div>
-        <div style={{ color: "rgba(255,255,255,0.18)", fontSize: "11px", ...mono, position: "relative", zIndex: 1 }}>Noguilt Fitness & Nutrition Pvt. Ltd.</div>
+        <div />
       </div>
       {/* Right panel */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px" }}>
