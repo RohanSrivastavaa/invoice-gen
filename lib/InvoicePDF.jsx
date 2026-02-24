@@ -1,6 +1,6 @@
 // lib/InvoicePDF.jsx
 // Renders the invoice as a proper PDF using @react-pdf/renderer
-// Used both for download and for email attachment
+// Styled to match Fitelo brand guidelines (Seashell bg, Honey Orange, Grey-Blue)
 
 import {
   Document, Page, Text, View, StyleSheet, Font
@@ -25,75 +25,203 @@ const inr = n => "Rs. " + Number(n).toLocaleString("en-IN");
 const calcNet = inv =>
   inv.professional_fee + inv.incentive + inv.variable - inv.tds + inv.reimbursement;
 
+// ─── Fitelo Brand Tokens ──────────────────────────────────────────────────────
+const B = {
+  orange: "#FF8643",
+  orangeLight: "#FFF4EE",
+  orangeBorder: "#FFD4B8",
+  mint: "#99E8D3",
+  greyBlue: "#2F313B",
+  seashell: "#F9F4F1",
+  pearl: "#F4EAE1",
+  border: "#EDE8E4",
+  borderLight: "#F3EEE9",
+  textPrimary: "#2F313B",
+  textSecondary: "#6B6F7A",
+  textMuted: "#A8ACB8",
+  white: "#FFFFFF",
+  red: "#EE7674",
+};
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
     fontSize: 9,
-    color: "#111111",
-    paddingTop: 32,
-    paddingBottom: 32,
+    color: B.textPrimary,
+    paddingTop: 36,
+    paddingBottom: 36,
     paddingLeft: 44,
     paddingRight: 44,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: B.white,
   },
 
-  // Header
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
-  invoiceTitle: { fontSize: 22, fontFamily: "Helvetica-Bold", letterSpacing: -0.5, color: "#111111" },
-  invoiceNo: { fontSize: 10, color: "#777777", marginTop: 4, fontFamily: "Courier" },
-  periodBadge: { backgroundColor: "#E85D04", color: "#FFFFFF", borderRadius: 4, paddingVertical: 4, paddingHorizontal: 10, fontSize: 10, fontFamily: "Helvetica-Bold", textAlign: "center" },
-  periodLabel: { fontSize: 9, color: "#777777", marginTop: 4, textAlign: "right" },
+  // ── Header ──
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  invoiceTitle: {
+    fontSize: 26,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: -0.5,
+    color: B.textPrimary,
+  },
+  invoiceNo: {
+    fontSize: 9,
+    color: B.textMuted,
+    marginTop: 4,
+    fontFamily: "Courier",
+  },
+  // Period badge — pill style matching the app
+  periodBadge: {
+    backgroundColor: B.orangeLight,
+    color: B.orange,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: B.orangeBorder,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+  },
+  periodLabel: {
+    fontSize: 8,
+    color: B.textMuted,
+    marginTop: 4,
+    textAlign: "right",
+  },
 
-  // Divider
-  divider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 12 },
-  dividerDark: { height: 2, backgroundColor: "#111111", marginBottom: 8 },
+  // ── Dividers ──
+  divider: {
+    height: 1,
+    backgroundColor: B.border,
+    marginVertical: 14,
+  },
 
-  // Two-col layout
+  // ── Two-col layout ──
   row2: { flexDirection: "row", gap: 32, marginBottom: 20 },
   col: { flex: 1 },
 
-  // Labels
-  sectionLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 1, color: "#777777", textTransform: "uppercase", marginBottom: 8 },
-  fieldLabel: { fontSize: 8, color: "#777777", marginBottom: 2 },
-  fieldValue: { fontSize: 10, fontFamily: "Helvetica-Bold" },
-  monoValue: { fontSize: 10, fontFamily: "Courier" },
+  // ── Labels / values ──
+  sectionLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: 1.2,
+    color: B.textMuted,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  fieldValue: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: B.textPrimary,
+  },
+  fieldLabel: {
+    fontSize: 8,
+    color: B.textMuted,
+    marginBottom: 2,
+  },
+  monoValue: {
+    fontSize: 10,
+    fontFamily: "Courier",
+    color: B.textPrimary,
+  },
+  monoMuted: {
+    fontSize: 9,
+    fontFamily: "Courier",
+    color: B.textSecondary,
+  },
+  consultantId: {
+    fontSize: 10,
+    fontFamily: "Courier",
+    color: B.orange,
+  },
 
-  // Service days box
-  daysBox: { backgroundColor: "#F8F8F8", borderWidth: 1, borderColor: "#F0F0F0", borderRadius: 4, padding: 10, marginBottom: 14 },
+  // ── Service days box ──
+  daysBox: {
+    backgroundColor: B.seashell,
+    borderWidth: 1,
+    borderColor: B.borderLight,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
   daysRow: { flexDirection: "row" },
   dayCell: { flex: 1, alignItems: "center" },
-  dayNumber: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#111111" },
-  dayLabel: { fontSize: 8, color: "#777777", marginTop: 2 },
+  dayNumber: { fontSize: 20, fontFamily: "Helvetica-Bold", color: B.textPrimary },
+  dayLabel: { fontSize: 7, color: B.textMuted, marginTop: 2, textAlign: "center" },
 
-  // Table
-  tableHeader: { flexDirection: "row", borderBottomWidth: 2, borderBottomColor: "#111111", paddingBottom: 6, marginBottom: 2 },
-  tableHeaderText: { fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 1, color: "#777777", textTransform: "uppercase" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#F0F0F0", paddingVertical: 6 },
-  tableCell: { flex: 1, fontSize: 10, color: "#444444" },
-  tableCellRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: "#444444" },
-  tableCellBold: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold" },
-  tableCellBoldRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier-Bold" },
-  tableCellRed: { flex: 1, fontSize: 10, color: "#DC2626" },
-  tableCellRedRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: "#DC2626" },
+  // ── Payment table ──
+  tableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1.5,
+    borderBottomColor: B.textPrimary,
+    paddingBottom: 6,
+    marginBottom: 2,
+  },
+  tableHeaderText: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: 1,
+    color: B.textMuted,
+    textTransform: "uppercase",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: B.borderLight,
+    paddingVertical: 7,
+  },
+  tableCell: { flex: 1, fontSize: 10, color: B.textSecondary },
+  tableCellRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: B.textSecondary },
+  tableCellBold: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold", color: B.textPrimary },
+  tableCellBoldRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier-Bold", color: B.textPrimary },
+  tableCellRed: { flex: 1, fontSize: 10, color: B.red },
+  tableCellRedRight: { fontSize: 10, textAlign: "right", fontFamily: "Courier", color: B.red },
 
-  // Net payable bar
-  netBar: { backgroundColor: "#111111", borderRadius: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginBottom: 4 },
-  netLabel: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#FFFFFF" },
-  netAmount: { fontSize: 16, fontFamily: "Courier-Bold", color: "#FFFFFF" },
-  netWords: { fontSize: 9, color: "#777777", fontStyle: "italic", marginBottom: 20 },
+  // ── Net payable bar — Grey-Blue matching the app ──
+  netBar: {
+    backgroundColor: B.greyBlue,
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  netLabel: { fontSize: 12, fontFamily: "Helvetica-Bold", color: B.white },
+  netAmount: { fontSize: 18, fontFamily: "Courier-Bold", color: B.white },
+  netWords: { fontSize: 9, color: B.textMuted, fontStyle: "italic", marginBottom: 20 },
 
-  // Bank details
+  // ── Bank details ──
   bankGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 28 },
   bankCell: { width: "47%" },
 
-  // Signature
+  // ── Signature ──
   signatureRow: { flexDirection: "row", justifyContent: "flex-end" },
-  signatureLine: { width: 150, borderBottomWidth: 1, borderBottomColor: "#CCCCCC", paddingBottom: 40 },
-  signatureLabel: { fontSize: 8, color: "#777777", marginTop: 6, textAlign: "center" },
+  signatureLine: {
+    width: 150,
+    borderBottomWidth: 1,
+    borderBottomColor: B.border,
+    paddingBottom: 44,
+  },
+  signatureLabel: { fontSize: 8, color: B.textMuted, marginTop: 6, textAlign: "center" },
 
-
+  // ── Footer accent strip ──
+  footerStrip: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: B.orange,
+  },
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -102,7 +230,6 @@ export function InvoicePDF({ invoice, consultant, company }) {
   const net = calcNet(invoice);
   const total = invoice.professional_fee + invoice.incentive + invoice.variable;
 
-  // Use CSV bank details if present, otherwise fall back to consultant's saved details
   const bank = {
     beneficiaryName: invoice.bank_beneficiary || consultant.bank_beneficiary,
     bankName: invoice.bank_name || consultant.bank_name,
@@ -120,7 +247,7 @@ export function InvoicePDF({ invoice, consultant, company }) {
             <Text style={s.invoiceTitle}>Invoice</Text>
             <Text style={s.invoiceNo}>{invoice.invoice_no}</Text>
           </View>
-          <View>
+          <View style={{ alignItems: "flex-end" }}>
             <Text style={s.periodBadge}>{invoice.billing_period}</Text>
             <Text style={s.periodLabel}>Billing Period</Text>
           </View>
@@ -133,20 +260,22 @@ export function InvoicePDF({ invoice, consultant, company }) {
           <View style={s.col}>
             <Text style={s.sectionLabel}>From</Text>
             <Text style={[s.fieldValue, { marginBottom: 6 }]}>{consultant.name}</Text>
-            <Text style={s.monoValue}>PAN: {consultant.pan}</Text>
-            {consultant.gstin ? <Text style={s.monoValue}>GSTIN: {consultant.gstin}</Text> : null}
-            <Text style={s.monoValue}>ID: {consultant.consultant_id}</Text>
+            <Text style={s.monoMuted}>PAN: <Text style={s.monoValue}>{consultant.pan}</Text></Text>
+            {consultant.gstin
+              ? <Text style={s.monoMuted}>GSTIN: <Text style={s.monoValue}>{consultant.gstin}</Text></Text>
+              : null}
+            <Text style={s.monoMuted}>ID: <Text style={s.consultantId}>{consultant.consultant_id}</Text></Text>
           </View>
           <View style={s.col}>
             <Text style={s.sectionLabel}>Bill To</Text>
             <Text style={[s.fieldValue, { marginBottom: 6 }]}>{company.name}</Text>
-            <Text style={{ fontSize: 10, color: "#444444", lineHeight: 1.5 }}>{company.address}</Text>
+            <Text style={{ fontSize: 9, color: B.textSecondary, lineHeight: 1.6 }}>{company.address}</Text>
           </View>
         </View>
 
         {/* ── Service Days ── */}
         <View style={s.daysBox}>
-          <Text style={[s.sectionLabel, { marginBottom: 12 }]}>Service Days Summary</Text>
+          <Text style={[s.sectionLabel, { marginBottom: 10 }]}>Service Days Summary</Text>
           <View style={s.daysRow}>
             {[
               ["Total Days", invoice.total_days],
@@ -155,7 +284,7 @@ export function InvoicePDF({ invoice, consultant, company }) {
               ["Net Payable Days", invoice.net_payable_days],
             ].map(([label, value]) => (
               <View key={label} style={s.dayCell}>
-                <Text style={s.dayNumber}>{value}</Text>
+                <Text style={s.dayNumber}>{value ?? 0}</Text>
                 <Text style={s.dayLabel}>{label}</Text>
               </View>
             ))}
@@ -170,9 +299,9 @@ export function InvoicePDF({ invoice, consultant, company }) {
         </View>
 
         {[
-          ["Professional Fee", invoice.professional_fee, false, false],
-          ["Incentive", invoice.incentive, false, false],
-          ["Variable / Bonus / Referral", invoice.variable, false, false],
+          ["Professional Fee", invoice.professional_fee],
+          ["Incentive", invoice.incentive],
+          ["Variable / Bonus / Referral", invoice.variable],
         ].map(([label, val]) => (
           <View key={label} style={s.tableRow}>
             <Text style={s.tableCell}>{label}</Text>
@@ -190,7 +319,7 @@ export function InvoicePDF({ invoice, consultant, company }) {
           <Text style={s.tableCellRedRight}>({invoice.tds.toLocaleString("en-IN")})</Text>
         </View>
 
-        <View style={[s.tableRow, { marginBottom: 12 }]}>
+        <View style={[s.tableRow, { marginBottom: 14 }]}>
           <Text style={s.tableCell}>Reimbursement</Text>
           <Text style={s.tableCellRight}>{invoice.reimbursement.toLocaleString("en-IN")}</Text>
         </View>
@@ -228,7 +357,8 @@ export function InvoicePDF({ invoice, consultant, company }) {
           </View>
         </View>
 
-
+        {/* ── Thin orange footer strip (brand accent) ── */}
+        <View style={s.footerStrip} />
 
       </Page>
     </Document>
