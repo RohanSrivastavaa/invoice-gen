@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, completeOnboarding } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -326,9 +326,17 @@ function OnboardingScreen({ user, onComplete }) {
     if (!form.consultantId || !form.pan || !form.bankBeneficiary || !form.bankName || !form.bankAccount || !form.bankIfsc) { setError("Please fill in all required fields."); return; }
     setSaving(true); setError(null);
     try {
-      const { error: updateError } = await supabase.from("consultants").update({ consultant_id: form.consultantId, pan: form.pan, gstin: form.gstin, bank_beneficiary: form.bankBeneficiary, bank_name: form.bankName, bank_account: form.bankAccount, bank_ifsc: form.bankIfsc }).eq("email", user.email);
-      if (updateError) throw updateError;
-      onComplete({ ...user, consultant_id: form.consultantId, pan: form.pan, gstin: form.gstin, bank_beneficiary: form.bankBeneficiary, bank_name: form.bankName, bank_account: form.bankAccount, bank_ifsc: form.bankIfsc });
+      const updated = await completeOnboarding(user.email, {
+        consultantId: form.consultantId,
+        pan: form.pan,
+        gstin: form.gstin,
+        bankBeneficiary: form.bankBeneficiary,
+        bankName: form.bankName,
+        bankAccount: form.bankAccount,
+        bankIfsc: form.bankIfsc,
+        name: user.name,
+      });
+      onComplete(updated);
     } catch (err) { setError(err.message); }
     setSaving(false);
   }
