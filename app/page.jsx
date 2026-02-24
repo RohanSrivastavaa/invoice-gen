@@ -780,6 +780,9 @@ function AdminScreen() {
             <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" }}>
               <div style={{ color: C.green, fontWeight: "700", marginBottom: "2px" }}>✓ Upload successful</div>
               <div style={{ color: C.textSecondary, fontSize: "13px" }}>{result.count} consultant invoice(s) created and ready for review.</div>
+              {result.note && (
+                <div style={{ color: C.orange, fontSize: "12px", marginTop: "8px", lineHeight: "1.5", paddingTop: "8px", borderTop: `1px solid ${C.greenBorder}` }}>⚠ {result.note}</div>
+              )}
             </div>
           )}
           {result?.rows?.length > 0 && (
