@@ -272,11 +272,11 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", background: C.seashell, ...satoshi }}>
       {/* Left panel */}
-      <div style={{ width: "420px", background: C.greyBlue, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px", flexShrink: 0, position: "relative", overflow: "hidden" }}>
+      <div style={{ width: "420px", background: C.greyBlue, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "48px", flexShrink: 0, position: "relative", overflow: "hidden" }}>
         {/* Subtle brand orb */}
         <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "220px", height: "220px", background: C.orange, borderRadius: "50%", opacity: 0.12, filter: "blur(40px)" }} />
         <div style={{ position: "absolute", bottom: "80px", left: "-40px", width: "160px", height: "160px", background: C.mint, borderRadius: "50%", opacity: 0.15, filter: "blur(30px)" }} />
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
           <div style={{ fontSize: "40px", fontWeight: "700", color: C.white, lineHeight: "1.15", marginBottom: "16px", letterSpacing: "-0.5px" }}>
             Your invoices,<br />done in<br /><span style={{ color: C.orange }}>seconds.</span>
           </div>
