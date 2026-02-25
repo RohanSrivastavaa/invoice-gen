@@ -914,7 +914,7 @@ export default function App() {
     if (screen !== "login" && screen !== "not-setup") localStorage.setItem("ng_screen", screen);
     if (screen === "invoice" && activeInvoice) {
       localStorage.setItem("ng_invoice", activeInvoice.id);
-    } else if (screen !== "invoice") {
+    } else if (screen !== "invoice" && screen !== "login") {
       localStorage.removeItem("ng_invoice");
     }
   }, [screen, activeInvoice]);
@@ -938,7 +938,7 @@ export default function App() {
             const validScreens = ["dashboard", "invoice"];
             if (validScreens.includes(savedScreen)) {
               if (savedScreen === "invoice" && savedInvoiceId) {
-                const found = inv.find(i => i.id === savedInvoiceId);
+                const found = inv.find(i => String(i.id) === savedInvoiceId);
                 if (found) { setActiveInvoice(found); setScreen("invoice"); }
                 else setScreen("dashboard"); // invoice not found, fall back
               } else {
