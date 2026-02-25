@@ -77,10 +77,6 @@ export async function POST(request) {
     }
 
     // ── 1. Upsert consultant profiles ────────────────────────────────────────
-    // Uses email as the conflict key — if the consultant already exists,
-    // update their profile details (bank details may have changed).
-    // Also handles the case where a placeholder row exists for this consultant_id
-    // with a different email — we need to update it to the real email.
     const consultantUpserts = rows.map(r => ({
       consultant_id: r.consultant_id,
       email: r.email,
@@ -92,9 +88,6 @@ export async function POST(request) {
       bank_ifsc: r.bank_ifsc,
     }));
 
-    // For each consultant, check if a placeholder exists for this consultant_id
-    // If yes, update the placeholder row to use the real email.
-    // If no, upsert by email.
     for (const c of consultantUpserts) {
       const { data: existing } = await supabaseAdmin
         .from("consultants")
@@ -103,19 +96,26 @@ export async function POST(request) {
         .maybeSingle();
 
       if (existing) {
-        // Row exists for this consultant_id — update it with latest details
+        const isPlaceholder = existing.email.startsWith("pending-") &&
+          existing.email.endsWith("@placeholder.internal");
+
+        // Never overwrite a real email — only update profile/bank details.
+        // If it's a placeholder, also update the email to the real one from CSV.
+        const updateFields = {
+          pan: c.pan,
+          gstin: c.gstin,
+          bank_beneficiary: c.bank_beneficiary,
+          bank_name: c.bank_name,
+          bank_account: c.bank_account,
+          bank_ifsc: c.bank_ifsc,
+          ...(isPlaceholder && { email: c.email }),
+        };
+
         await supabaseAdmin
           .from("consultants")
-          .update({
-            email: c.email,
-            pan: c.pan,
-            gstin: c.gstin,
-            bank_beneficiary: c.bank_beneficiary,
-            bank_name: c.bank_name,
-            bank_account: c.bank_account,
-            bank_ifsc: c.bank_ifsc,
-          })
+          .update(updateFields)
           .eq("consultant_id", c.consultant_id);
+
       } else {
         // No row for this consultant_id — check if a row exists for this email
         const { data: byEmail } = await supabaseAdmin
@@ -125,7 +125,7 @@ export async function POST(request) {
           .maybeSingle();
 
         if (byEmail) {
-          // Email row exists (blank sign-in row or old entry) — update it
+          // Email row exists — update profile but never touch is_admin
           await supabaseAdmin
             .from("consultants")
             .update({
@@ -139,7 +139,7 @@ export async function POST(request) {
             })
             .eq("email", c.email);
         } else {
-          // Brand new consultant — insert fresh row
+          // Brand new consultant — insert fresh row (no is_admin, defaults to false)
           await supabaseAdmin
             .from("consultants")
             .insert({
@@ -151,7 +151,7 @@ export async function POST(request) {
               bank_name: c.bank_name,
               bank_account: c.bank_account,
               bank_ifsc: c.bank_ifsc,
-              name: c.email.split("@")[0], // temp name from email, overwritten on first login
+              name: c.email.split("@")[0],
             });
         }
       }
