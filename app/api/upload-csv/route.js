@@ -2,7 +2,7 @@
 // Admin-only. Parses CSV, upserts consultant profiles AND invoice records.
 // CSV must include: consultant_id, email, pan, invoice_no, billing_period,
 // professional_fee, tds, total_days, working_days, net_payable_days.
-// Optional: gstin, incentive, variable, reimbursement, lop_days, bank columns.
+// Optional: gstin, incentive, variable, reimbursement, lop_days.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -48,10 +48,6 @@ export async function POST(request) {
         email: row.email,
         pan: row.pan,
         gstin: row.gstin || null,
-        bank_beneficiary: row.bank_beneficiary || null,
-        bank_name: row.bank_name || null,
-        bank_account: row.bank_account || null,
-        bank_ifsc: row.bank_ifsc || null,
         // Invoice fields
         invoice_no: row.invoice_no,
         billing_period: row.billing_period,
@@ -82,10 +78,6 @@ export async function POST(request) {
       email: r.email,
       pan: r.pan,
       gstin: r.gstin,
-      bank_beneficiary: r.bank_beneficiary,
-      bank_name: r.bank_name,
-      bank_account: r.bank_account,
-      bank_ifsc: r.bank_ifsc,
     }));
 
     for (const c of consultantUpserts) {
@@ -104,10 +96,6 @@ export async function POST(request) {
         const updateFields = {
           pan: c.pan,
           gstin: c.gstin,
-          bank_beneficiary: c.bank_beneficiary,
-          bank_name: c.bank_name,
-          bank_account: c.bank_account,
-          bank_ifsc: c.bank_ifsc,
           ...(isPlaceholder && { email: c.email }),
         };
 
@@ -132,10 +120,6 @@ export async function POST(request) {
               consultant_id: c.consultant_id,
               pan: c.pan,
               gstin: c.gstin,
-              bank_beneficiary: c.bank_beneficiary,
-              bank_name: c.bank_name,
-              bank_account: c.bank_account,
-              bank_ifsc: c.bank_ifsc,
             })
             .eq("email", c.email);
         } else {
@@ -147,10 +131,6 @@ export async function POST(request) {
               email: c.email,
               pan: c.pan,
               gstin: c.gstin,
-              bank_beneficiary: c.bank_beneficiary,
-              bank_name: c.bank_name,
-              bank_account: c.bank_account,
-              bank_ifsc: c.bank_ifsc,
               name: c.email.split("@")[0],
             });
         }
@@ -171,11 +151,6 @@ export async function POST(request) {
       working_days: r.working_days,
       lop_days: r.lop_days,
       net_payable_days: r.net_payable_days,
-      // Bank details on the invoice itself (snapshot at time of upload)
-      bank_beneficiary: r.bank_beneficiary,
-      bank_name: r.bank_name,
-      bank_account: r.bank_account,
-      bank_ifsc: r.bank_ifsc,
       status: "pending",
     }));
 
