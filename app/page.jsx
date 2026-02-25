@@ -28,7 +28,7 @@ function toWords(n) {
 }
 
 const inr = n => "₹" + Number(n).toLocaleString("en-IN");
-const calcNet = inv => (inv.professional_fee || 0) + (inv.incentive || 0) + (inv.variable || 0) - (inv.tds || 0) + (inv.reimbursement || 0);
+const calcNet = inv => (Number(inv.professional_fee) || 0) + (Number(inv.incentive) || 0) + (Number(inv.variable) || 0) - (Number(inv.tds) || 0) + (Number(inv.reimbursement) || 0);
 
 function downloadCSVTemplate() {
   const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -164,7 +164,7 @@ function FiteloMark({ size = 28 }) {
 
 function InvoiceDocument({ invoice, user }) {
   const net = calcNet(invoice);
-  const total = (invoice.professional_fee || 0) + (invoice.incentive || 0) + (invoice.variable || 0);
+  const total = (Number(invoice.professional_fee) || 0) + (Number(invoice.incentive) || 0) + (Number(invoice.variable) || 0);
 
   return (
     <div style={{ background: C.white, width: "620px", padding: "48px 52px", boxShadow: "0 1px 4px rgba(47,49,59,0.06), 0 8px 32px rgba(47,49,59,0.08)", borderRadius: "16px", color: C.textPrimary, fontSize: "12px", ...satoshi }}>
