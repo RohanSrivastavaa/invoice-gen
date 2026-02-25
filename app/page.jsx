@@ -552,28 +552,32 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
           </div>
           <button onClick={onClose} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: "8px", cursor: "pointer", color: C.textMuted, fontSize: "16px", lineHeight: 1, width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
-            <div key={l} style={{ flex: 1, background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "10px 12px" }}>
-              <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "3px", letterSpacing: "0.5px" }}>{l}</div>
-              <div style={{ fontSize: "12px", fontWeight: "600", ...mono, color: C.textPrimary }}>{v}</div>
+        {!user.isAdmin && (
+          <>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+              {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
+                <div key={l} style={{ flex: 1, background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "3px", letterSpacing: "0.5px" }}>{l}</div>
+                  <div style={{ fontSize: "12px", fontWeight: "600", ...mono, color: C.textPrimary }}>{v}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <HR my={0} /><div style={{ height: "20px" }} />
-        {/* Signature */}
-        <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
-          <div style={{ fontSize: "11px", fontWeight: "600", color: C.textMuted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>Signature</div>
-          {user.signature_url && (
-            <img src={user.signature_url} alt="Signature" style={{ height: "48px", objectFit: "contain", marginBottom: "12px", display: "block" }} />
-          )}
-          <input ref={sigInputRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }} onChange={handleSignatureUpload} />
-          <button onClick={() => sigInputRef.current?.click()} disabled={sigUploading}
-            style={{ padding: "10px 16px", background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer", color: C.textPrimary, ...satoshi }}>
-            {sigUploading ? "Uploading…" : sigDone ? "✓ Saved" : user.signature_url ? "Replace Signature" : "Upload Signature"}
-          </button>
-          {sigError && <div style={{ color: C.red, fontSize: "11px", marginTop: "6px" }}>{sigError}</div>}
-        </div>
+            <HR my={0} /><div style={{ height: "20px" }} />
+            {/* Signature */}
+            <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "600", color: C.textMuted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>Signature</div>
+              {user.signature_url && (
+                <img src={user.signature_url} alt="Signature" style={{ height: "48px", objectFit: "contain", marginBottom: "12px", display: "block" }} />
+              )}
+              <input ref={sigInputRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }} onChange={handleSignatureUpload} />
+              <button onClick={() => sigInputRef.current?.click()} disabled={sigUploading}
+                style={{ padding: "10px 16px", background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer", color: C.textPrimary, ...satoshi }}>
+                {sigUploading ? "Uploading…" : sigDone ? "✓ Saved" : user.signature_url ? "Replace Signature" : "Upload Signature"}
+              </button>
+              {sigError && <div style={{ color: C.red, fontSize: "11px", marginTop: "6px" }}>{sigError}</div>}
+            </div>
+          </>
+        )}
         <div style={{ marginTop: "auto" }}>
           <HR my={20} />
           <button onClick={onSignOut} style={{ background: "none", border: "none", color: C.red, fontSize: "13px", cursor: "pointer", padding: 0, ...satoshi }}>Sign out</button>
