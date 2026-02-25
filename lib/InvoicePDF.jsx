@@ -3,7 +3,7 @@
 // Styled to match Fitelo brand guidelines (Seashell bg, Honey Orange, Grey-Blue)
 
 import {
-  Document, Page, Text, View, StyleSheet, Font
+  Document, Page, Text, View, StyleSheet, Font, Image
 } from "@react-pdf/renderer";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -352,7 +352,11 @@ export function InvoicePDF({ invoice, consultant, company }) {
         {/* ── Signature ── */}
         <View style={s.signatureRow}>
           <View>
-            <View style={s.signatureLine} />
+            <View style={[s.signatureLine, { justifyContent: "flex-end", alignItems: "center" }]}>
+              {consultant.signature_url && (
+                <Image src={consultant.signature_url} style={{ height: 36, objectFit: "contain" }} />
+              )}
+            </View>
             <Text style={s.signatureLabel}>Consultant Signature</Text>
           </View>
         </View>

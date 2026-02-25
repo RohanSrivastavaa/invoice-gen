@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchUser, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchUser, fetchInvoices, updateBankDetails, uploadSignature, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -259,7 +259,11 @@ function InvoiceDocument({ invoice, user }) {
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "150px", height: "52px", borderBottom: `1px solid ${C.border}` }} />
+          <div style={{ width: "150px", height: "52px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "4px" }}>
+            {user.signature_url && (
+              <img src={user.signature_url} alt="Signature" style={{ maxHeight: "44px", maxWidth: "140px", objectFit: "contain" }} />
+            )}
+          </div>
           <div style={{ fontSize: "10px", color: C.textMuted, marginTop: "6px" }}>Consultant Signature</div>
         </div>
       </div>
@@ -533,10 +537,30 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   );
 }
 
-function ProfileDrawer({ user, onClose, onSignOut }) {
+function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
   const [form, setForm] = useState({ beneficiaryName: user.bank_beneficiary || "", bankName: user.bank_name || "", accountNumber: user.bank_account || "", ifscCode: user.bank_ifsc || "" });
   const [saved, setSaved] = useState(false);
   async function handleSave() { await updateBankDetails(user.consultant_id, form); setSaved(true); setTimeout(() => setSaved(false), 2500); }
+
+  const [sigUploading, setSigUploading] = useState(false);
+  const [sigError, setSigError] = useState(null);
+  const [sigDone, setSigDone] = useState(false);
+  const sigInputRef = useRef(null);
+
+  async function handleSignatureUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSigUploading(true); setSigError(null); setSigDone(false);
+    try {
+      const url = await uploadSignature(user.consultant_id, file);
+      onUpdate({ ...user, signature_url: url });
+      setSigDone(true);
+      setTimeout(() => setSigDone(false), 2500);
+    } catch (err) {
+      setSigError(err.message);
+    }
+    setSigUploading(false);
+  }
 
   return (
     <>
@@ -571,6 +595,19 @@ function ProfileDrawer({ user, onClose, onSignOut }) {
         <button onClick={handleSave} style={{ width: "100%", background: saved ? C.green : C.greyBlue, color: C.white, border: "none", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer", ...satoshi, transition: "background 0.3s", marginTop: "8px" }}>
           {saved ? "✓ Saved" : "Save Details"}
         </button>
+        {/* Signature */}
+        <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
+          <div style={{ fontSize: "11px", fontWeight: "600", color: C.textMuted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>Signature</div>
+          {user.signature_url && (
+            <img src={user.signature_url} alt="Signature" style={{ height: "48px", objectFit: "contain", marginBottom: "12px", display: "block" }} />
+          )}
+          <input ref={sigInputRef} type="file" accept="image/png,image/jpeg" style={{ display: "none" }} onChange={handleSignatureUpload} />
+          <button onClick={() => sigInputRef.current?.click()} disabled={sigUploading}
+            style={{ padding: "10px 16px", background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer", color: C.textPrimary, ...satoshi }}>
+            {sigUploading ? "Uploading…" : sigDone ? "✓ Saved" : user.signature_url ? "Replace Signature" : "Upload Signature"}
+          </button>
+          {sigError && <div style={{ color: C.red, fontSize: "11px", marginTop: "6px" }}>{sigError}</div>}
+        </div>
         <div style={{ marginTop: "auto" }}>
           <HR my={20} />
           <button onClick={onSignOut} style={{ background: "none", border: "none", color: C.red, fontSize: "13px", cursor: "pointer", padding: 0, ...satoshi }}>Sign out</button>
@@ -1011,7 +1048,7 @@ export default function App() {
         <div style={{ minHeight: "100vh", background: C.seashell }}>
           <Topbar user={user} isAdmin={true} onProfile={() => setShowProfile(true)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
           <AdminScreen />
-          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />}
+          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} onUpdate={setUser} />}
         </div>
       )}
 
@@ -1020,7 +1057,7 @@ export default function App() {
           <Topbar user={user} isAdmin={false} onProfile={() => setShowProfile(true)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
           {screen === "dashboard" && <Dashboard user={user} invoices={invoices} onOpen={handleOpen} />}
           {screen === "invoice" && activeInvoice && <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} onUpdate={handleUpdate} />}
-          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />}
+          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} onUpdate={setUser} />}
         </div>
       )}
     </>
