@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchUser, fetchInvoices, updateBankDetails, uploadSignature, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchUser, fetchInvoices, uploadSignature, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -165,12 +165,6 @@ function FiteloMark({ size = 28 }) {
 function InvoiceDocument({ invoice, user }) {
   const net = calcNet(invoice);
   const total = (invoice.professional_fee || 0) + (invoice.incentive || 0) + (invoice.variable || 0);
-  const bank = {
-    beneficiaryName: invoice.bank_beneficiary || user.bank_beneficiary || "",
-    bankName: invoice.bank_name || user.bank_name || "",
-    accountNumber: invoice.bank_account || user.bank_account || "",
-    ifscCode: invoice.bank_ifsc || user.bank_ifsc || "",
-  };
 
   return (
     <div style={{ background: C.white, width: "620px", padding: "48px 52px", boxShadow: "0 1px 4px rgba(47,49,59,0.06), 0 8px 32px rgba(47,49,59,0.08)", borderRadius: "16px", color: C.textPrimary, fontSize: "12px", ...satoshi }}>
@@ -246,17 +240,6 @@ function InvoiceDocument({ invoice, user }) {
         <span style={{ fontWeight: "700", fontSize: "20px", ...mono }}>{net.toLocaleString("en-IN")}</span>
       </div>
       <div style={{ color: C.textMuted, fontSize: "11px", fontStyle: "italic", marginBottom: "24px" }}>{toWords(net)} Rupees Only</div>
-      <HR />
-      <div style={{ height: "20px" }} />
-      <Label>Bank Details</Label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "32px" }}>
-        {[["Beneficiary Name", bank.beneficiaryName], ["Bank Name", bank.bankName], ["Account Number", bank.accountNumber], ["IFSC Code", bank.ifscCode]].map(([l, v]) => (
-          <div key={l}>
-            <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "2px" }}>{l}</div>
-            <div style={{ fontWeight: "600", ...mono, fontSize: "12px" }}>{v || "—"}</div>
-          </div>
-        ))}
-      </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: "150px", height: "52px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "4px" }}>
@@ -538,10 +521,6 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
 }
 
 function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
-  const [form, setForm] = useState({ beneficiaryName: user.bank_beneficiary || "", bankName: user.bank_name || "", accountNumber: user.bank_account || "", ifscCode: user.bank_ifsc || "" });
-  const [saved, setSaved] = useState(false);
-  async function handleSave() { await updateBankDetails(user.consultant_id, form); setSaved(true); setTimeout(() => setSaved(false), 2500); }
-
   const [sigUploading, setSigUploading] = useState(false);
   const [sigError, setSigError] = useState(null);
   const [sigDone, setSigDone] = useState(false);
@@ -582,19 +561,6 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
           ))}
         </div>
         <HR my={0} /><div style={{ height: "20px" }} />
-        <Label>Bank Details (Fallback)</Label>
-        <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "16px", lineHeight: "1.6" }}>Used when bank details are not provided in the monthly CSV.</div>
-        {[["Beneficiary Name", "beneficiaryName"], ["Bank Name", "bankName"], ["Account Number", "accountNumber"], ["IFSC Code", "ifscCode"]].map(([label, key]) => (
-          <div key={key} style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "11px", color: C.textSecondary, fontWeight: "600", display: "block", marginBottom: "4px" }}>{label}</label>
-            <input type="text" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })}
-              style={{ width: "100%", padding: "9px 11px", border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", color: C.textPrimary, background: C.white, ...mono, boxSizing: "border-box", outline: "none", transition: "border-color 0.15s" }}
-              onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
-          </div>
-        ))}
-        <button onClick={handleSave} style={{ width: "100%", background: saved ? C.green : C.greyBlue, color: C.white, border: "none", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer", ...satoshi, transition: "background 0.3s", marginTop: "8px" }}>
-          {saved ? "✓ Saved" : "Save Details"}
-        </button>
         {/* Signature */}
         <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
           <div style={{ fontSize: "11px", fontWeight: "600", color: C.textMuted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>Signature</div>

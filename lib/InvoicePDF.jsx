@@ -230,13 +230,6 @@ export function InvoicePDF({ invoice, consultant, company }) {
   const net = calcNet(invoice);
   const total = invoice.professional_fee + invoice.incentive + invoice.variable;
 
-  const bank = {
-    beneficiaryName: invoice.bank_beneficiary || consultant.bank_beneficiary,
-    bankName: invoice.bank_name || consultant.bank_name,
-    accountNumber: invoice.bank_account || consultant.bank_account,
-    ifscCode: invoice.bank_ifsc || consultant.bank_ifsc,
-  };
-
   return (
     <Document>
       <Page size="A4" style={s.page}>
@@ -330,24 +323,6 @@ export function InvoicePDF({ invoice, consultant, company }) {
           <Text style={s.netAmount}>{net.toLocaleString("en-IN")}</Text>
         </View>
         <Text style={s.netWords}>{toWords(net)} Rupees Only</Text>
-
-        <View style={s.divider} />
-
-        {/* ── Bank Details ── */}
-        <Text style={s.sectionLabel}>Bank Details</Text>
-        <View style={s.bankGrid}>
-          {[
-            ["Beneficiary Name", bank.beneficiaryName],
-            ["Bank Name", bank.bankName],
-            ["Account Number", bank.accountNumber],
-            ["IFSC Code", bank.ifscCode],
-          ].map(([label, value]) => (
-            <View key={label} style={s.bankCell}>
-              <Text style={s.fieldLabel}>{label}</Text>
-              <Text style={s.monoValue}>{value || "—"}</Text>
-            </View>
-          ))}
-        </View>
 
         {/* ── Signature ── */}
         <View style={s.signatureRow}>
