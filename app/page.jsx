@@ -10,9 +10,9 @@ const COMPANY = {
 };
 
 const CSV_TEMPLATE = [
-  "consultant_id,email,pan,gstin,invoice_no,billing_period,professional_fee,incentive,variable,tds,reimbursement,total_days,working_days,lop_days,net_payable_days,bank_beneficiary,bank_name,bank_account,bank_ifsc",
-  "C0096,krishna@fitelo.co,ABCDE1234F,,JAN26-0001,Jan'26,7000,0,0,700,0,31,31,0,31,Krishna V,HDFC Bank,1234567890,HDFC0001234",
-  "C0097,priya@fitelo.co,FGHIJ5678K,,JAN26-0002,Jan'26,8500,500,0,900,0,31,30,1,30,Priya S,SBI,9876543210,SBIN0010913",
+  "consultant_id,email,pan,gstin,invoice_no,billing_period,professional_fee,incentive,variable,tds,reimbursement,total_days,working_days,lop_days,net_payable_days",
+  "C0096,krishna@fitelo.co,ABCDE1234F,,JAN26-0001,Jan'26,7000,0,0,700,0,31,31,0,31",
+  "C0097,priya@fitelo.co,FGHIJ5678K,,JAN26-0002,Jan'26,8500,500,0,900,0,31,30,1,30",
 ].join("\n");
 
 function toWords(n) {
@@ -761,12 +761,12 @@ function AdminScreen() {
             </div>
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px 14px", overflowX: "auto" }}>
               <code style={{ fontSize: "11px", color: C.textSecondary, ...mono, whiteSpace: "nowrap" }}>
-                consultant_id, email, pan, gstin, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
+                consultant_id, email, pan, gstin, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days
               </code>
             </div>
             <div style={{ marginTop: "12px", fontSize: "11px", color: C.textMuted, lineHeight: "1.7" }}>
               <strong>Required:</strong> consultant_id, email, pan, invoice_no, billing_period, professional_fee, tds, total_days, working_days, net_payable_days.<br />
-              <strong>Optional:</strong> gstin, incentive, variable, reimbursement, lop_days, bank columns.<br />
+              <strong>Optional:</strong> gstin, incentive, variable, reimbursement, lop_days.<br />
               Consultant profiles are created/updated automatically from the CSV — consultants just sign in and send.
             </div>
           </div>
@@ -779,8 +779,8 @@ function AdminScreen() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "32px" }}>
             {[
               { label: "Total Registered", value: allConsultants.length, color: C.textPrimary },
-              { label: "Profile Complete", value: allConsultants.filter(c => c.pan && c.bank_account && c.consultant_id).length, color: C.green },
-              { label: "Incomplete Profile", value: allConsultants.filter(c => !c.pan || !c.bank_account || !c.consultant_id).length, color: C.orange, highlight: allConsultants.filter(c => !c.pan || !c.bank_account || !c.consultant_id).length > 0 },
+              { label: "Profile Complete", value: allConsultants.filter(c => c.pan && c.consultant_id).length, color: C.green },
+              { label: "Incomplete Profile", value: allConsultants.filter(c => !c.pan || !c.consultant_id).length, color: C.orange, highlight: allConsultants.filter(c => !c.pan || !c.consultant_id).length > 0 },
             ].map(({ label, value, color, highlight }) => (
               <div key={label} style={{ border: `1px solid ${highlight ? C.orangeBorder : C.border}`, background: highlight ? C.orangeLight : C.white, borderRadius: "12px", padding: "18px 20px" }}>
                 <div style={{ fontSize: "10px", fontWeight: "600", letterSpacing: "1px", color: color, textTransform: "uppercase", marginBottom: "6px" }}>{label}</div>
@@ -796,18 +796,16 @@ function AdminScreen() {
             <div style={{ border: `1px solid ${C.border}`, borderRadius: "12px", overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead style={{ background: C.seashell }}>
-                  <tr>{["Name", "Consultant ID", "PAN", "Bank Account", "IFSC", "Profile"].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                  <tr>{["Name", "Consultant ID", "PAN", "Profile"].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {allConsultants.map((c, i) => {
-                    const complete = c.pan && c.bank_account && c.bank_ifsc && c.bank_beneficiary && c.consultant_id;
+                    const complete = c.pan && c.consultant_id;
                     return (
                       <tr key={c.email} style={{ borderTop: `1px solid ${C.border}`, background: i % 2 === 0 ? C.white : C.seashell }}>
                         <td style={tdStyle}><div style={{ fontWeight: "600", fontSize: "13px", color: C.textPrimary }}>{c.name}</div><div style={{ fontSize: "11px", color: C.textMuted }}>{c.email}</div></td>
                         <td style={{ ...tdStyle, ...mono, color: c.consultant_id ? C.orange : C.red, fontWeight: "600" }}>{c.consultant_id || "Not set"}</td>
                         <td style={{ ...tdStyle, ...mono, fontSize: "12px" }}>{c.pan || <span style={{ color: C.red }}>Missing</span>}</td>
-                        <td style={{ ...tdStyle, ...mono, fontSize: "12px" }}>{c.bank_account ? `••••${c.bank_account.slice(-4)}` : <span style={{ color: C.red }}>Missing</span>}</td>
-                        <td style={{ ...tdStyle, ...mono, fontSize: "12px" }}>{c.bank_ifsc || <span style={{ color: C.red }}>Missing</span>}</td>
                         <td style={tdStyle}>
                           <span style={{ background: complete ? C.greenLight : C.orangeLight, color: complete ? C.green : C.orange, border: `1px solid ${complete ? C.greenBorder : C.orangeBorder}`, borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: "600", ...satoshi }}>
                             {complete ? "Complete" : "Incomplete"}
