@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, completeOnboarding, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -10,9 +10,9 @@ const COMPANY = {
 };
 
 const CSV_TEMPLATE = [
-  "consultant_id,invoice_no,billing_period,professional_fee,incentive,variable,tds,reimbursement,total_days,working_days,lop_days,net_payable_days,bank_beneficiary,bank_name,bank_account,bank_ifsc",
-  "C0096,JAN26-0001,Jan'26,7000,0,0,700,0,31,31,0,31,,,,",
-  "C0097,JAN26-0002,Jan'26,8500,500,0,900,0,31,30,1,30,,,,",
+  "consultant_id,email,pan,gstin,invoice_no,billing_period,professional_fee,incentive,variable,tds,reimbursement,total_days,working_days,lop_days,net_payable_days,bank_beneficiary,bank_name,bank_account,bank_ifsc",
+  "C0096,krishna@fitelo.co,ABCDE1234F,,JAN26-0001,Jan'26,7000,0,0,700,0,31,31,0,31,Krishna V,HDFC Bank,1234567890,HDFC0001234",
+  "C0097,priya@fitelo.co,FGHIJ5678K,,JAN26-0002,Jan'26,8500,500,0,900,0,31,30,1,30,Priya S,SBI,9876543210,SBIN0010913",
 ].join("\n");
 
 function toWords(n) {
@@ -310,71 +310,23 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function OnboardingScreen({ user, onComplete }) {
-  const [form, setForm] = useState({ consultantId: "", pan: "", gstin: "", bankBeneficiary: "", bankName: "", bankAccount: "", bankIfsc: "" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  async function handleSubmit() {
-    if (!form.consultantId || !form.pan || !form.bankBeneficiary || !form.bankName || !form.bankAccount || !form.bankIfsc) { setError("Please fill in all required fields."); return; }
-    setSaving(true); setError(null);
-    try {
-      const updated = await completeOnboarding(user.email, {
-        consultantId: form.consultantId,
-        pan: form.pan,
-        gstin: form.gstin,
-        bankBeneficiary: form.bankBeneficiary,
-        bankName: form.bankName,
-        bankAccount: form.bankAccount,
-        bankIfsc: form.bankIfsc,
-        name: user.name,
-      });
-      onComplete(updated);
-    } catch (err) { setError(err.message); }
-    setSaving(false);
-  }
-
-  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: "10px", fontSize: "13px", color: C.textPrimary, ...satoshi, boxSizing: "border-box", background: C.white, outline: "none", transition: "border-color 0.15s" };
-
+function NotSetUpScreen({ user, onSignOut }) {
   return (
-    <div style={{ minHeight: "100vh", background: C.seashell, display: "flex", ...satoshi }}>
-      <div style={{ width: "360px", background: C.greyBlue, padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "-40px", right: "-40px", width: "180px", height: "180px", background: C.orange, borderRadius: "50%", opacity: 0.1, filter: "blur(40px)" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
-          <FiteloMark size={28} />
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "12px", fontWeight: "600" }}>Fitelo</div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase" }}>Invoice Portal</div>
-          </div>
+    <div style={{ minHeight: "100vh", background: C.seashell, display: "flex", alignItems: "center", justifyContent: "center", ...satoshi }}>
+      <div style={{ width: "100%", maxWidth: "420px", textAlign: "center", padding: "32px 24px" }}>
+        <FiteloMark size={40} />
+        <div style={{ fontSize: "22px", fontWeight: "700", color: C.textPrimary, marginTop: "20px", marginBottom: "8px", letterSpacing: "-0.3px" }}>Account not set up yet</div>
+        <div style={{ fontSize: "14px", color: C.textMuted, lineHeight: "1.7", marginBottom: "28px" }}>
+          Your account hasn&#39;t been configured in the system yet. Please contact your admin — once they upload your details, your invoice will be ready on your next login.
         </div>
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: "34px", fontWeight: "700", color: C.white, lineHeight: "1.2", marginBottom: "14px", letterSpacing: "-0.3px" }}>One-time<br />setup.</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.7" }}>We need a few details to generate your invoices correctly. You only need to do this once.</div>
+        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "12px 16px", marginBottom: "24px", fontSize: "12px", color: C.textMuted, ...mono }}>
+          Signed in as <span style={{ color: C.textPrimary }}>{user?.email}</span>
         </div>
-        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", ...mono, position: "relative", zIndex: 1 }}>Logged in as {user?.email}</div>
-      </div>
-      <div style={{ flex: 1, padding: "48px", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
-        <div style={{ width: "100%", maxWidth: "480px" }}>
-          <div style={{ fontSize: "24px", fontWeight: "700", color: C.textPrimary, marginBottom: "6px", letterSpacing: "-0.3px" }}>Complete your profile</div>
-          <div style={{ fontSize: "13px", color: C.textMuted, marginBottom: "32px" }}>These details will appear on every invoice you generate.</div>
-          <div style={{ fontSize: "10px", fontWeight: "600", letterSpacing: "1.2px", color: C.textMuted, textTransform: "uppercase", marginBottom: "14px" }}>Consultant Details</div>
-          {[{ label: "Consultant ID *", key: "consultantId", placeholder: "e.g. C0096" }, { label: "PAN *", key: "pan", placeholder: "e.g. ABCDE1234F" }, { label: "GSTIN (optional)", key: "gstin", placeholder: "Leave blank if not applicable" }].map(({ label, key, placeholder }) => (
-            <div key={key} style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: C.textSecondary, display: "block", marginBottom: "5px" }}>{label}</label>
-              <input type="text" placeholder={placeholder} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-          ))}
-          <HR my={20} />
-          <div style={{ fontSize: "10px", fontWeight: "600", letterSpacing: "1.2px", color: C.textMuted, textTransform: "uppercase", marginBottom: "14px" }}>Bank Details</div>
-          {[{ label: "Beneficiary Name *", key: "bankBeneficiary", placeholder: "As per bank records" }, { label: "Bank Name *", key: "bankName", placeholder: "e.g. State Bank of India" }, { label: "Account Number *", key: "bankAccount", placeholder: "Your account number" }, { label: "IFSC Code *", key: "bankIfsc", placeholder: "e.g. SBIN0010913" }].map(({ label, key, placeholder }) => (
-            <div key={key} style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: C.textSecondary, display: "block", marginBottom: "5px" }}>{label}</label>
-              <input type="text" placeholder={placeholder} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-          ))}
-          {error && <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: "10px", padding: "12px 14px", color: C.red, fontSize: "13px", marginBottom: "16px" }}>{error}</div>}
-          <OrangeBtn onClick={handleSubmit} disabled={saving} full>{saving ? "Saving…" : "Save & Continue →"}</OrangeBtn>
-        </div>
+        <button onClick={onSignOut} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: "10px", padding: "10px 20px", fontSize: "13px", color: C.textSecondary, cursor: "pointer", ...satoshi, transition: "all 0.15s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.color = C.orange; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSecondary; }}>
+          Sign out
+        </button>
       </div>
     </div>
   );
@@ -775,10 +727,7 @@ function AdminScreen() {
           {result && (
             <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" }}>
               <div style={{ color: C.green, fontWeight: "700", marginBottom: "2px" }}>✓ Upload successful</div>
-              <div style={{ color: C.textSecondary, fontSize: "13px" }}>{result.count} consultant invoice(s) created and ready for review.</div>
-              {result.note && (
-                <div style={{ color: C.orange, fontSize: "12px", marginTop: "8px", lineHeight: "1.5", paddingTop: "8px", borderTop: `1px solid ${C.greenBorder}` }}>⚠ {result.note}</div>
-              )}
+              <div style={{ color: C.textSecondary, fontSize: "13px" }}>{result.count} invoice(s) created and ready for review.</div>
             </div>
           )}
           {result?.rows?.length > 0 && (
@@ -816,11 +765,13 @@ function AdminScreen() {
             </div>
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px 14px", overflowX: "auto" }}>
               <code style={{ fontSize: "11px", color: C.textSecondary, ...mono, whiteSpace: "nowrap" }}>
-                consultant_id, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
+                consultant_id, email, pan, gstin, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
               </code>
             </div>
             <div style={{ marginTop: "12px", fontSize: "11px", color: C.textMuted, lineHeight: "1.7" }}>
-              <strong>Note:</strong> Bank columns are optional. Consultant must have signed in at least once before their invoice can be created.
+              <strong>Required:</strong> consultant_id, email, pan, invoice_no, billing_period, professional_fee, tds, total_days, working_days, net_payable_days.<br />
+              <strong>Optional:</strong> gstin, incentive, variable, reimbursement, lop_days, bank columns.<br />
+              Consultant profiles are created/updated automatically from the CSV — consultants just sign in and send.
             </div>
           </div>
         </div>
@@ -968,7 +919,7 @@ export default function App() {
   useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
 
   useEffect(() => {
-    if (screen !== "login" && screen !== "onboarding") localStorage.setItem("ng_screen", screen);
+    if (screen !== "login" && screen !== "not-setup") localStorage.setItem("ng_screen", screen);
   }, [screen]);
 
   useEffect(() => {
@@ -979,7 +930,7 @@ export default function App() {
     let mounted = true;
     async function loadUser(session) {
       try {
-        const consultant = await fetchConsultant(session.user.email);
+        const consultant = await fetchConsultant(session.user.email, session.user.user_metadata?.full_name);
         if (!mounted) return;
         if (consultant) {
           setUser(consultant);
@@ -992,10 +943,11 @@ export default function App() {
           }
           const savedScreen = localStorage.getItem("ng_screen");
           const validScreens = ["dashboard", "invoice"];
-          setScreen(validScreens.includes(savedScreen) ? savedScreen : (consultant.consultant_id ? "dashboard" : "onboarding"));
+          setScreen(validScreens.includes(savedScreen) ? savedScreen : "dashboard");
         } else {
+          // Email not in system — admin hasn't uploaded their details yet
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
-          setScreen("onboarding");
+          setScreen("not-setup");
         }
       } catch (err) { console.error("Load user error:", err); if (mounted) setScreen("login"); }
       finally { if (mounted) setTimeout(() => setLoading(false), 0); }
@@ -1044,8 +996,8 @@ export default function App() {
 `}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
-      {screen === "onboarding" && user && <OnboardingScreen user={user} onComplete={(u) => { setUser(u); setScreen("dashboard"); }} />}
-      {screen !== "login" && screen !== "onboarding" && (
+      {screen === "not-setup" && <NotSetUpScreen user={user} onSignOut={async () => { await supabase.auth.signOut(); setUser(null); setScreen("login"); }} />}
+      {screen !== "login" && screen !== "not-setup" && (
         <div style={{ minHeight: "100vh", background: C.seashell }}>
           <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => setIsAdmin(a => !a)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
           {isAdmin

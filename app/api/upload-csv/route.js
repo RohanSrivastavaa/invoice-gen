@@ -1,5 +1,8 @@
 // app/api/upload-csv/route.js
-// Admin-only. Verifies admin session before processing CSV.
+// Admin-only. Parses CSV, upserts consultant profiles AND invoice records.
+// CSV must include: consultant_id, email, pan, invoice_no, billing_period,
+// professional_fee, tds, total_days, working_days, net_payable_days.
+// Optional: gstin, incentive, variable, reimbursement, lop_days, bank columns.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -11,7 +14,8 @@ const supabaseAdmin = createClient(
 );
 
 const REQUIRED_COLUMNS = [
-  "consultant_id", "invoice_no", "billing_period",
+  "consultant_id", "email", "pan",
+  "invoice_no", "billing_period",
   "professional_fee", "tds", "total_days", "working_days", "net_payable_days",
 ];
 
@@ -28,14 +32,27 @@ export async function POST(request) {
     if (lines.length < 2) return NextResponse.json({ error: "CSV must have a header row and at least one data row" }, { status: 400 });
 
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/ /g, "_"));
-    const missingCols = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
-    if (missingCols.length > 0) return NextResponse.json({ error: `Missing required columns: ${missingCols.join(", ")}` }, { status: 400 });
 
-    const rows = lines.slice(1).map((line) => {
+    const missingCols = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+    if (missingCols.length > 0) {
+      return NextResponse.json({ error: `Missing required columns: ${missingCols.join(", ")}` }, { status: 400 });
+    }
+
+    const rows = lines.slice(1).map((line, index) => {
       const values = line.split(",").map(v => v.trim());
       const row = headers.reduce((obj, h, i) => ({ ...obj, [h]: values[i] || "" }), {});
+
       return {
+        // Consultant profile fields
         consultant_id: row.consultant_id,
+        email: row.email,
+        pan: row.pan,
+        gstin: row.gstin || null,
+        bank_beneficiary: row.bank_beneficiary || null,
+        bank_name: row.bank_name || null,
+        bank_account: row.bank_account || null,
+        bank_ifsc: row.bank_ifsc || null,
+        // Invoice fields
         invoice_no: row.invoice_no,
         billing_period: row.billing_period,
         professional_fee: parseFloat(row.professional_fee) || 0,
@@ -47,38 +64,140 @@ export async function POST(request) {
         working_days: parseInt(row.working_days) || 0,
         lop_days: parseInt(row.lop_days) || 0,
         net_payable_days: parseInt(row.net_payable_days) || 0,
-        bank_beneficiary: row.bank_beneficiary || null,
-        bank_name: row.bank_name || null,
-        bank_account: row.bank_account || null,
-        bank_ifsc: row.bank_ifsc || null,
-        status: "pending",
+        lineNum: index + 2,
       };
     });
 
-    const invalidRows = rows.map((row, i) => ({ row, lineNum: i + 2 })).filter(({ row }) => !row.consultant_id || !row.invoice_no || !row.billing_period);
-    if (invalidRows.length > 0) return NextResponse.json({ error: `Rows with missing required fields at lines: ${invalidRows.map(r => r.lineNum).join(", ")}` }, { status: 400 });
-
-    const consultantIds = [...new Set(rows.map(r => r.consultant_id))];
-    const { data: existing } = await supabaseAdmin.from("consultants").select("consultant_id").in("consultant_id", consultantIds);
-    const existingIds = new Set(existing?.map(c => c.consultant_id) || []);
-    const unknownIds = consultantIds.filter(id => !existingIds.has(id));
-
-    if (unknownIds.length > 0) {
-      const placeholders = unknownIds.map(id => ({ consultant_id: id, email: `pending-${id.toLowerCase()}@placeholder.internal`, name: id }));
-      const { error: pe } = await supabaseAdmin.from("consultants").insert(placeholders);
-      if (pe) return NextResponse.json({ error: "Failed to create placeholder records: " + pe.message }, { status: 500 });
+    // Validate required fields per row
+    const invalidRows = rows.filter(r => !r.consultant_id || !r.email || !r.pan || !r.invoice_no || !r.billing_period);
+    if (invalidRows.length > 0) {
+      return NextResponse.json({
+        error: `Rows with missing required fields at lines: ${invalidRows.map(r => r.lineNum).join(", ")}`,
+      }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin.from("invoices").upsert(rows, { onConflict: "invoice_no" }).select();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // ── 1. Upsert consultant profiles ────────────────────────────────────────
+    // Uses email as the conflict key — if the consultant already exists,
+    // update their profile details (bank details may have changed).
+    // Also handles the case where a placeholder row exists for this consultant_id
+    // with a different email — we need to update it to the real email.
+    const consultantUpserts = rows.map(r => ({
+      consultant_id: r.consultant_id,
+      email: r.email,
+      pan: r.pan,
+      gstin: r.gstin,
+      bank_beneficiary: r.bank_beneficiary,
+      bank_name: r.bank_name,
+      bank_account: r.bank_account,
+      bank_ifsc: r.bank_ifsc,
+    }));
+
+    // For each consultant, check if a placeholder exists for this consultant_id
+    // If yes, update the placeholder row to use the real email.
+    // If no, upsert by email.
+    for (const c of consultantUpserts) {
+      const { data: existing } = await supabaseAdmin
+        .from("consultants")
+        .select("email, consultant_id")
+        .eq("consultant_id", c.consultant_id)
+        .maybeSingle();
+
+      if (existing) {
+        // Row exists for this consultant_id — update it with latest details
+        await supabaseAdmin
+          .from("consultants")
+          .update({
+            email: c.email,
+            pan: c.pan,
+            gstin: c.gstin,
+            bank_beneficiary: c.bank_beneficiary,
+            bank_name: c.bank_name,
+            bank_account: c.bank_account,
+            bank_ifsc: c.bank_ifsc,
+          })
+          .eq("consultant_id", c.consultant_id);
+      } else {
+        // No row for this consultant_id — check if a row exists for this email
+        const { data: byEmail } = await supabaseAdmin
+          .from("consultants")
+          .select("email, consultant_id")
+          .eq("email", c.email)
+          .maybeSingle();
+
+        if (byEmail) {
+          // Email row exists (blank sign-in row or old entry) — update it
+          await supabaseAdmin
+            .from("consultants")
+            .update({
+              consultant_id: c.consultant_id,
+              pan: c.pan,
+              gstin: c.gstin,
+              bank_beneficiary: c.bank_beneficiary,
+              bank_name: c.bank_name,
+              bank_account: c.bank_account,
+              bank_ifsc: c.bank_ifsc,
+            })
+            .eq("email", c.email);
+        } else {
+          // Brand new consultant — insert fresh row
+          await supabaseAdmin
+            .from("consultants")
+            .insert({
+              consultant_id: c.consultant_id,
+              email: c.email,
+              pan: c.pan,
+              gstin: c.gstin,
+              bank_beneficiary: c.bank_beneficiary,
+              bank_name: c.bank_name,
+              bank_account: c.bank_account,
+              bank_ifsc: c.bank_ifsc,
+              name: c.email.split("@")[0], // temp name from email, overwritten on first login
+            });
+        }
+      }
+    }
+
+    // ── 2. Upsert invoices ───────────────────────────────────────────────────
+    const invoiceUpserts = rows.map(r => ({
+      consultant_id: r.consultant_id,
+      invoice_no: r.invoice_no,
+      billing_period: r.billing_period,
+      professional_fee: r.professional_fee,
+      incentive: r.incentive,
+      variable: r.variable,
+      tds: r.tds,
+      reimbursement: r.reimbursement,
+      total_days: r.total_days,
+      working_days: r.working_days,
+      lop_days: r.lop_days,
+      net_payable_days: r.net_payable_days,
+      // Bank details on the invoice itself (snapshot at time of upload)
+      bank_beneficiary: r.bank_beneficiary,
+      bank_name: r.bank_name,
+      bank_account: r.bank_account,
+      bank_ifsc: r.bank_ifsc,
+      status: "pending",
+    }));
+
+    const { data, error } = await supabaseAdmin
+      .from("invoices")
+      .upsert(invoiceUpserts, { onConflict: "invoice_no" })
+      .select();
+
+    if (error) {
+      console.error("Invoice upsert error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({
-      success: true, count: rows.length, rows: data, placeholdersCreated: unknownIds.length,
-      ...(unknownIds.length > 0 && { note: `${unknownIds.length} consultant(s) haven't signed in yet — invoices created and will be visible once they log in: ${unknownIds.join(", ")}` }),
+      success: true,
+      count: rows.length,
+      rows: data,
     });
 
   } catch (err) {
     if (err instanceof AuthError) return NextResponse.json({ error: err.message }, { status: err.status });
+    console.error("CSV upload error:", err);
     return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
   }
 }
