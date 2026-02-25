@@ -565,7 +565,7 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(47,49,59,0.2)", zIndex: 99, backdropFilter: "blur(2px)" }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "340px", background: C.white, borderLeft: `1px solid ${C.border}`, zIndex: 100, padding: "28px 24px", display: "flex", flexDirection: "column", ...satoshi }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "340px", background: C.white, borderLeft: `1px solid ${C.border}`, zIndex: 100, padding: "28px 24px", display: "flex", flexDirection: "column", overflowY: "auto", ...satoshi }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <div>
             <div style={{ fontWeight: "700", fontSize: "16px", color: C.textPrimary }}>{user.name}</div>
