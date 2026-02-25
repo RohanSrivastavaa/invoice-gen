@@ -573,30 +573,32 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
           </div>
           <button onClick={onClose} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: "8px", cursor: "pointer", color: C.textMuted, fontSize: "16px", lineHeight: 1, width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
-            <div key={l} style={{ flex: 1, background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "10px 12px" }}>
-              <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "3px", letterSpacing: "0.5px" }}>{l}</div>
-              <div style={{ fontSize: "12px", fontWeight: "600", ...mono, color: C.textPrimary }}>{v}</div>
+        {!user.isAdmin && (
+          <>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+              {[["ID", user.consultant_id], ["PAN", user.pan]].map(([l, v]) => (
+                <div key={l} style={{ flex: 1, background: C.seashell, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "3px", letterSpacing: "0.5px" }}>{l}</div>
+                  <div style={{ fontSize: "12px", fontWeight: "600", ...mono, color: C.textPrimary }}>{v}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <HR my={0} /><div style={{ height: "20px" }} />
-        <Label>Bank Details (Fallback)</Label>
-        <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "16px", lineHeight: "1.6" }}>Used when bank details are not provided in the monthly CSV.</div>
-        {[["Beneficiary Name", "beneficiaryName"], ["Bank Name", "bankName"], ["Account Number", "accountNumber"], ["IFSC Code", "ifscCode"]].map(([label, key]) => (
-          <div key={key} style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "11px", color: C.textSecondary, fontWeight: "600", display: "block", marginBottom: "4px" }}>{label}</label>
-            <input type="text" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })}
-              style={{ width: "100%", padding: "9px 11px", border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", color: C.textPrimary, background: C.white, ...mono, boxSizing: "border-box", outline: "none", transition: "border-color 0.15s" }}
-              onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
-          </div>
-        ))}
-        <button onClick={handleSave} style={{ width: "100%", background: saved ? C.green : C.greyBlue, color: C.white, border: "none", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer", ...satoshi, transition: "background 0.3s", marginTop: "8px" }}>
-          {saved ? "✓ Saved" : "Save Details"}
-        </button>
-        {/* Signature */}
-        <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
+            <HR my={0} /><div style={{ height: "20px" }} />
+            <Label>Bank Details (Fallback)</Label>
+            <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "16px", lineHeight: "1.6" }}>Used when bank details are not provided in the monthly CSV.</div>
+            {[["Beneficiary Name", "beneficiaryName"], ["Bank Name", "bankName"], ["Account Number", "accountNumber"], ["IFSC Code", "ifscCode"]].map(([label, key]) => (
+              <div key={key} style={{ marginBottom: "12px" }}>
+                <label style={{ fontSize: "11px", color: C.textSecondary, fontWeight: "600", display: "block", marginBottom: "4px" }}>{label}</label>
+                <input type="text" value={form[key] || ""} onChange={e => setForm({ ...form, [key]: e.target.value })}
+                  style={{ width: "100%", padding: "9px 11px", border: `1px solid ${C.border}`, borderRadius: "8px", fontSize: "12px", color: C.textPrimary, background: C.white, ...mono, boxSizing: "border-box", outline: "none", transition: "border-color 0.15s" }}
+                  onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
+            ))}
+            <button onClick={handleSave} style={{ width: "100%", background: saved ? C.green : C.greyBlue, color: C.white, border: "none", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer", ...satoshi, transition: "background 0.3s", marginTop: "8px" }}>
+              {saved ? "✓ Saved" : "Save Details"}
+            </button>
+            {/* Signature */}
+            <div style={{ marginTop: "24px", borderTop: `1px solid ${C.border}`, paddingTop: "20px" }}>
           <div style={{ fontSize: "11px", fontWeight: "600", color: C.textMuted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>Signature</div>
           {user.signature_url && (
             <img src={user.signature_url} alt="Signature" style={{ height: "48px", objectFit: "contain", marginBottom: "12px", display: "block" }} />
@@ -607,7 +609,9 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
             {sigUploading ? "Uploading…" : sigDone ? "✓ Saved" : user.signature_url ? "Replace Signature" : "Upload Signature"}
           </button>
           {sigError && <div style={{ color: C.red, fontSize: "11px", marginTop: "6px" }}>{sigError}</div>}
-        </div>
+            </div>
+          </>
+        )}
         <div style={{ marginTop: "auto" }}>
           <HR my={20} />
           <button onClick={onSignOut} style={{ background: "none", border: "none", color: C.red, fontSize: "13px", cursor: "pointer", padding: 0, ...satoshi }}>Sign out</button>
