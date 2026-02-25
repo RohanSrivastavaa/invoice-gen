@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase, signInWithGoogle, fetchConsultant, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
+import { supabase, signInWithGoogle, fetchUser, fetchInvoices, updateBankDetails, sendInvoice, uploadPaymentCSV, fetchAdminInvoices, markInvoicePaid, sendReminder } from "@/lib/supabase";
 
 const COMPANY = {
   name: "Noguilt Fitness and Nutrition Private Limited",
@@ -332,7 +332,7 @@ function NotSetUpScreen({ user, onSignOut }) {
   );
 }
 
-function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDark }) {
+function Topbar({ user, isAdmin, onProfile, darkMode, onToggleDark }) {
   return (
     <div style={{ height: "56px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", background: C.white, position: "sticky", top: 0, zIndex: 50 }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -341,14 +341,7 @@ function Topbar({ user, onProfile, isAdmin, onToggleAdmin, darkMode, onToggleDar
         {isAdmin && <span style={{ background: C.greyBlue, color: C.white, fontSize: "10px", borderRadius: "20px", padding: "2px 8px", ...satoshi, letterSpacing: "0.5px", fontWeight: "600" }}>ADMIN</span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {user && <span style={{ fontSize: "12px", color: C.textMuted, ...mono }}>{user.consultant_id}</span>}
-        {user?.is_admin && (
-          <button onClick={onToggleAdmin} style={{ fontSize: "11px", color: C.textSecondary, background: "none", border: `1px solid ${C.border}`, borderRadius: "8px", padding: "5px 12px", cursor: "pointer", ...satoshi, fontWeight: "500", transition: "all 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = C.orange; e.currentTarget.style.color = C.orange; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSecondary; }}>
-            {isAdmin ? "← My view" : "Admin →"}
-          </button>
-        )}
+        {user && !isAdmin && <span style={{ fontSize: "12px", color: C.textMuted, ...mono }}>{user.consultant_id}</span>}
         <button onClick={onToggleDark} title="Toggle dark mode"
           style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", fontSize: "13px", lineHeight: 1, transition: "border-color 0.15s" }}
           onMouseEnter={e => e.currentTarget.style.borderColor = C.orange}
@@ -912,7 +905,6 @@ export default function App() {
   const [invoices, setInvoices] = useState([]);
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -923,29 +915,24 @@ export default function App() {
   }, [screen]);
 
   useEffect(() => {
-    if (!loading) localStorage.setItem("ng_is_admin", String(isAdmin));
-  }, [isAdmin, loading]);
-
-  useEffect(() => {
     let mounted = true;
     async function loadUser(session) {
       try {
-        const consultant = await fetchConsultant(session.user.email, session.user.user_metadata?.full_name);
+        const userData = await fetchUser(session.user.email, session.user.user_metadata?.full_name);
         if (!mounted) return;
-        if (consultant) {
-          setUser(consultant);
-          const inv = await fetchInvoices(consultant.consultant_id);
-          if (!mounted) return;
-          setInvoices(inv);
-          if (consultant.is_admin) {
-            const savedAdmin = localStorage.getItem("ng_is_admin");
-            if (savedAdmin === null || savedAdmin === "true") setIsAdmin(true);
+        if (userData) {
+          setUser(userData);
+          if (userData.isAdmin) {
+            setScreen("admin");
+          } else {
+            const inv = await fetchInvoices(userData.consultant_id);
+            if (!mounted) return;
+            setInvoices(inv);
+            const savedScreen = localStorage.getItem("ng_screen");
+            const validScreens = ["dashboard", "invoice"];
+            setScreen(validScreens.includes(savedScreen) ? savedScreen : "dashboard");
           }
-          const savedScreen = localStorage.getItem("ng_screen");
-          const validScreens = ["dashboard", "invoice"];
-          setScreen(validScreens.includes(savedScreen) ? savedScreen : "dashboard");
         } else {
-          // Email not in system — admin hasn't uploaded their details yet
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
           setScreen("not-setup");
         }
@@ -968,6 +955,12 @@ export default function App() {
   function handleOpen(inv) { setActiveInvoice(inv); setScreen("invoice"); }
   function handleSent() { setInvoices(prev => prev.map(i => i.id === activeInvoice.id ? { ...i, status: "sent", sent_at: new Date().toISOString() } : i)); setActiveInvoice(null); setScreen("dashboard"); }
   function handleUpdate(updatedInvoice) { setInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i)); setActiveInvoice(updatedInvoice); }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("ng_screen");
+    setUser(null); setScreen("login"); setShowProfile(false);
+  };
 
   if (loading) {
     return (
@@ -996,19 +989,22 @@ export default function App() {
 `}</style>
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
-      {screen === "not-setup" && <NotSetUpScreen user={user} onSignOut={async () => { await supabase.auth.signOut(); setUser(null); setScreen("login"); }} />}
-      {screen !== "login" && screen !== "not-setup" && (
+      {screen === "not-setup" && <NotSetUpScreen user={user} onSignOut={handleSignOut} />}
+
+      {screen === "admin" && (
         <div style={{ minHeight: "100vh", background: C.seashell }}>
-          <Topbar user={user} onProfile={() => setShowProfile(true)} isAdmin={isAdmin} onToggleAdmin={() => setIsAdmin(a => !a)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
-          {isAdmin
-            ? <AdminScreen />
-            : screen === "dashboard" ? <Dashboard user={user} invoices={invoices} onOpen={handleOpen} />
-              : screen === "invoice" && activeInvoice ? <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} onUpdate={handleUpdate} />
-                : null}
-          {showProfile && (
-            <ProfileDrawer user={user} onClose={() => setShowProfile(false)}
-              onSignOut={async () => { await supabase.auth.signOut(); localStorage.removeItem("ng_screen"); localStorage.removeItem("ng_is_admin"); setUser(null); setScreen("login"); setShowProfile(false); }} />
-          )}
+          <Topbar user={user} isAdmin={true} onProfile={() => setShowProfile(true)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
+          <AdminScreen />
+          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />}
+        </div>
+      )}
+
+      {(screen === "dashboard" || screen === "invoice") && user && !user.isAdmin && (
+        <div style={{ minHeight: "100vh", background: C.seashell }}>
+          <Topbar user={user} isAdmin={false} onProfile={() => setShowProfile(true)} darkMode={darkMode} onToggleDark={() => setDarkMode(d => !d)} />
+          {screen === "dashboard" && <Dashboard user={user} invoices={invoices} onOpen={handleOpen} />}
+          {screen === "invoice" && activeInvoice && <InvoiceScreen invoice={activeInvoice} user={user} onBack={() => setScreen("dashboard")} onSent={handleSent} onUpdate={handleUpdate} />}
+          {showProfile && <ProfileDrawer user={user} onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />}
         </div>
       )}
     </>
