@@ -911,15 +911,13 @@ export default function App() {
   useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
 
   useEffect(() => {
-    if (activeInvoice) localStorage.setItem("ng_invoice", activeInvoice.id);
-  }, [activeInvoice]);
-
-
-
-  useEffect(() => {
     if (screen !== "login" && screen !== "not-setup") localStorage.setItem("ng_screen", screen);
-    if (screen !== "invoice") localStorage.removeItem("ng_invoice");
-  }, [screen]);
+    if (screen === "invoice" && activeInvoice) {
+      localStorage.setItem("ng_invoice", activeInvoice.id);
+    } else if (screen !== "invoice") {
+      localStorage.removeItem("ng_invoice");
+    }
+  }, [screen, activeInvoice]);
 
   useEffect(() => {
     let mounted = true;
