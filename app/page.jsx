@@ -911,7 +911,14 @@ export default function App() {
   useEffect(() => { document.body.classList.toggle("dark", darkMode); }, [darkMode]);
 
   useEffect(() => {
+    if (activeInvoice) localStorage.setItem("ng_invoice", activeInvoice.id);
+  }, [activeInvoice]);
+
+
+
+  useEffect(() => {
     if (screen !== "login" && screen !== "not-setup") localStorage.setItem("ng_screen", screen);
+    if (screen !== "invoice") localStorage.removeItem("ng_invoice");
   }, [screen]);
 
   useEffect(() => {
@@ -929,8 +936,19 @@ export default function App() {
             if (!mounted) return;
             setInvoices(inv);
             const savedScreen = localStorage.getItem("ng_screen");
+            const savedInvoiceId = localStorage.getItem("ng_invoice");
             const validScreens = ["dashboard", "invoice"];
-            setScreen(validScreens.includes(savedScreen) ? savedScreen : "dashboard");
+            if (validScreens.includes(savedScreen)) {
+              if (savedScreen === "invoice" && savedInvoiceId) {
+                const found = inv.find(i => i.id === savedInvoiceId);
+                if (found) { setActiveInvoice(found); setScreen("invoice"); }
+                else setScreen("dashboard"); // invoice not found, fall back
+              } else {
+                setScreen(savedScreen);
+              }
+            } else {
+              setScreen("dashboard");
+            }
           }
         } else {
           setUser({ email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email });
