@@ -37,8 +37,8 @@ const B = {
   border: "#EDE8E4",
   borderLight: "#F3EEE9",
   textPrimary: "#2F313B",
-  textSecondary: "#6B6F7A",
-  textMuted: "#A8ACB8",
+  textSecondary: "#3F4250",
+  textMuted: "#555968",
   white: "#FFFFFF",
   red: "#EE7674",
 };
@@ -327,7 +327,7 @@ export function InvoicePDF({ invoice, consultant, company }) {
         {/* ── Signature ── */}
         <View style={s.signatureRow}>
           <View>
-            <View style={[s.signatureLine, { justifyContent: "flex-end", alignItems: "center" }]}>
+            <View style={[s.signatureLine, { justifyContent: "flex-end", alignItems: "center", paddingBottom: consultant.signature_url ? 4 : 44 }]}>
               {consultant.signature_url && (
                 <Image src={consultant.signature_url} style={{ height: 36, objectFit: "contain" }} />
               )}
