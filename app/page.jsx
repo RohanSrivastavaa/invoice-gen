@@ -419,6 +419,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   const net = calcNet(draft);
 
   async function handleSend() {
+    if (!user.signature_url) { setState("nosig"); return; }
     setState("sending");
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -501,6 +502,11 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
               </div>
             ))}
             <div style={{ marginTop: "auto" }}>
+              {!user.signature_url && (
+                <div style={{ background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "12px", fontSize: "12px", color: C.orange, fontWeight: "600" }}>
+                  Signature required — please upload your signature in your profile before sending.
+                </div>
+              )}
               {state === "sent" ? (
                 <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: "10px", padding: "16px", textAlign: "center", color: C.green, fontWeight: "600", fontSize: "14px" }}>✓ Invoice Sent!</div>
               ) : state === "error" ? (
@@ -509,7 +515,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
                   <div style={{ marginTop: "10px" }}><OrangeBtn onClick={() => setState("idle")} full>Retry</OrangeBtn></div>
                 </div>
               ) : (
-                <OrangeBtn onClick={handleSend} disabled={state === "sending" || isEditing} full>{state === "sending" ? "Sending…" : "Send Invoice →"}</OrangeBtn>
+                <OrangeBtn onClick={handleSend} disabled={state === "sending" || isEditing || !user.signature_url} full>{state === "sending" ? "Sending…" : "Send Invoice →"}</OrangeBtn>
               )}
               <div style={{ fontSize: "11px", color: C.textMuted, textAlign: "center", marginTop: "10px" }}>Stored in your history after sending</div>
             </div>
@@ -575,6 +581,9 @@ function ProfileDrawer({ user, onClose, onSignOut, onUpdate }) {
                 {sigUploading ? "Uploading…" : sigDone ? "✓ Saved" : user.signature_url ? "Replace Signature" : "Upload Signature"}
               </button>
               {sigError && <div style={{ color: C.red, fontSize: "11px", marginTop: "6px" }}>{sigError}</div>}
+              <div style={{ marginTop: "10px", fontSize: "11px", color: C.textMuted, lineHeight: "1.5" }}>
+                Use a plain <strong>white background</strong> for best results on the invoice.
+              </div>
             </div>
           </>
         )}
