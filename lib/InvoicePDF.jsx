@@ -23,7 +23,7 @@ function toWords(n) {
 
 const inr = n => "Rs. " + Number(n).toLocaleString("en-IN");
 const calcNet = inv =>
-  inv.professional_fee + inv.incentive + inv.variable - inv.tds + inv.reimbursement;
+  inv.professional_fee + inv.incentive + inv.variable - inv.tds - (inv.other_deductions || 0) + inv.reimbursement;
 
 // ─── Fitelo Brand Tokens ──────────────────────────────────────────────────────
 const B = {
@@ -311,6 +311,13 @@ export function InvoicePDF({ invoice, consultant, company }) {
           <Text style={s.tableCellRed}>TDS @ 10%</Text>
           <Text style={s.tableCellRedRight}>({invoice.tds.toLocaleString("en-IN")})</Text>
         </View>
+
+        {invoice.other_deductions > 0 && (
+          <View style={s.tableRow}>
+            <Text style={s.tableCellRed}>Other Deductions</Text>
+            <Text style={s.tableCellRedRight}>({(invoice.other_deductions || 0).toLocaleString("en-IN")})</Text>
+          </View>
+        )}
 
         <View style={[s.tableRow, { marginBottom: 14 }]}>
           <Text style={s.tableCell}>Reimbursement</Text>
