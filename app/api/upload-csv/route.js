@@ -165,55 +165,33 @@ export async function POST(request) {
       }
     }
 
-    // ── 2. Upsert invoices — match on (consultant_id + invoice_no) so the same
+    // ── 2. Upsert invoices — conflict on (consultant_id, invoice_no) so the same
     //    invoice_no can exist for different consultants without collision ────────
-    const upsertedRows = [];
-    for (const r of rows) {
-      const invoiceFields = {
-        consultant_id: r.consultant_id,
-        invoice_no: r.invoice_no,
-        billing_period: r.billing_period,
-        professional_fee: r.professional_fee,
-        incentive: r.incentive,
-        variable: r.variable,
-        other_deductions: r.other_deductions,
-        tds: r.tds,
-        reimbursement: r.reimbursement,
-        total_days: r.total_days,
-        working_days: r.working_days,
-        lop_days: r.lop_days,
-        net_payable_days: r.net_payable_days,
-      };
+    const invoiceUpserts = rows.map(r => ({
+      consultant_id: r.consultant_id,
+      invoice_no: r.invoice_no,
+      billing_period: r.billing_period,
+      professional_fee: r.professional_fee,
+      incentive: r.incentive,
+      variable: r.variable,
+      other_deductions: r.other_deductions,
+      tds: r.tds,
+      reimbursement: r.reimbursement,
+      total_days: r.total_days,
+      working_days: r.working_days,
+      lop_days: r.lop_days,
+      net_payable_days: r.net_payable_days,
+      status: "pending",
+    }));
 
-      // Check if this (consultant_id, invoice_no) pair already exists
-      const { data: existing } = await supabaseAdmin
-        .from("invoices")
-        .select("id")
-        .eq("consultant_id", r.consultant_id)
-        .eq("invoice_no", r.invoice_no)
-        .maybeSingle();
+    const { data: upsertedRows, error: invError } = await supabaseAdmin
+      .from("invoices")
+      .upsert(invoiceUpserts, { onConflict: "consultant_id,invoice_no" })
+      .select();
 
-      let result, err;
-      if (existing) {
-        ({ data: result, error: err } = await supabaseAdmin
-          .from("invoices")
-          .update(invoiceFields)
-          .eq("id", existing.id)
-          .select()
-          .single());
-      } else {
-        ({ data: result, error: err } = await supabaseAdmin
-          .from("invoices")
-          .insert({ ...invoiceFields, status: "pending" })
-          .select()
-          .single());
-      }
-
-      if (err) {
-        console.error("Invoice upsert error:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
-      }
-      upsertedRows.push(result);
+    if (invError) {
+      console.error("Invoice upsert error:", invError);
+      return NextResponse.json({ error: invError.message }, { status: 500 });
     }
 
     return NextResponse.json({
