@@ -166,22 +166,26 @@ export async function POST(request) {
     }
 
     // ── 2. Upsert invoices ───────────────────────────────────────────────────
-    const invoiceUpserts = rows.map(r => ({
-      consultant_id: r.consultant_id,
-      invoice_no: r.invoice_no,
-      billing_period: r.billing_period,
-      professional_fee: r.professional_fee,
-      incentive: r.incentive,
-      variable: r.variable,
-      other_deductions: r.other_deductions,
-      tds: r.tds,
-      reimbursement: r.reimbursement,
-      total_days: r.total_days,
-      working_days: r.working_days,
-      lop_days: r.lop_days,
-      net_payable_days: r.net_payable_days,
-      status: "pending",
-    }));
+    const invoiceMap = new Map();
+    rows.forEach(r => {
+      invoiceMap.set(r.invoice_no, {
+        consultant_id: r.consultant_id,
+        invoice_no: r.invoice_no,
+        billing_period: r.billing_period,
+        professional_fee: r.professional_fee,
+        incentive: r.incentive,
+        variable: r.variable,
+        other_deductions: r.other_deductions,
+        tds: r.tds,
+        reimbursement: r.reimbursement,
+        total_days: r.total_days,
+        working_days: r.working_days,
+        lop_days: r.lop_days,
+        net_payable_days: r.net_payable_days,
+        status: "pending",
+      });
+    });
+    const invoiceUpserts = Array.from(invoiceMap.values());
 
     const { data, error } = await supabaseAdmin
       .from("invoices")
