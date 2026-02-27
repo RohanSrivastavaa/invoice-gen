@@ -165,42 +165,41 @@ export async function POST(request) {
       }
     }
 
-    // ── 2. Upsert invoices ───────────────────────────────────────────────────
-    const invoiceMap = new Map();
-    rows.forEach(r => {
-      invoiceMap.set(r.invoice_no, {
-        consultant_id: r.consultant_id,
-        invoice_no: r.invoice_no,
-        billing_period: r.billing_period,
-        professional_fee: r.professional_fee,
-        incentive: r.incentive,
-        variable: r.variable,
-        other_deductions: r.other_deductions,
-        tds: r.tds,
-        reimbursement: r.reimbursement,
-        total_days: r.total_days,
-        working_days: r.working_days,
-        lop_days: r.lop_days,
-        net_payable_days: r.net_payable_days,
-        status: "pending",
-      });
-    });
-    const invoiceUpserts = Array.from(invoiceMap.values());
+    // ── 2. Upsert invoices (one by one to allow same invoice_no across rows) ─
+    const upsertedRows = [];
+    for (const r of rows) {
+      const { data, error } = await supabaseAdmin
+        .from("invoices")
+        .upsert({
+          consultant_id: r.consultant_id,
+          invoice_no: r.invoice_no,
+          billing_period: r.billing_period,
+          professional_fee: r.professional_fee,
+          incentive: r.incentive,
+          variable: r.variable,
+          other_deductions: r.other_deductions,
+          tds: r.tds,
+          reimbursement: r.reimbursement,
+          total_days: r.total_days,
+          working_days: r.working_days,
+          lop_days: r.lop_days,
+          net_payable_days: r.net_payable_days,
+          status: "pending",
+        }, { onConflict: "invoice_no" })
+        .select()
+        .single();
 
-    const { data, error } = await supabaseAdmin
-      .from("invoices")
-      .upsert(invoiceUpserts, { onConflict: "invoice_no" })
-      .select();
-
-    if (error) {
-      console.error("Invoice upsert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        console.error("Invoice upsert error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      upsertedRows.push(data);
     }
 
     return NextResponse.json({
       success: true,
       count: rows.length,
-      rows: data,
+      rows: upsertedRows,
     });
 
   } catch (err) {
