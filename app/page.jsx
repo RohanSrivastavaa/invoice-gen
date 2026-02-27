@@ -10,9 +10,9 @@ const COMPANY = {
 };
 
 const CSV_TEMPLATE = [
-  "consultant_id,email,pan,gstin,invoice_no,billing_period,professional_fee,incentive,variable,tds,reimbursement,total_days,working_days,lop_days,net_payable_days,bank_beneficiary,bank_name,bank_account,bank_ifsc",
-  "C0096,krishna@fitelo.co,ABCDE1234F,,JAN26-0001,Jan'26,7000,0,0,700,0,31,31,0,31,Krishna V,HDFC Bank,1234567890,HDFC0001234",
-  "C0097,priya@fitelo.co,FGHIJ5678K,,JAN26-0002,Jan'26,8500,500,0,900,0,31,30,1,30,Priya S,SBI,9876543210,SBIN0010913",
+  "invoice_no,billing_period,gstin,consultant_id,consultant_name,pan,professional_fee,incentive,variable,total_amount,tds,other_deductions,reimbursement,net_payable,total_days,working_days,lop_days,net_payable_days,consultant_email",
+  "JAN26-0001,Jan'26,,C0096,Krishna V,ABCDE1234F,7000,0,0,7000,700,0,0,6300,31,31,0,31,krishna@fitelo.co",
+  "JAN26-0002,Jan'26,,C0097,Priya S,FGHIJ5678K,8500,500,0,9000,900,0,0,8100,31,30,1,30,priya@fitelo.co",
 ].join("\n");
 
 function toWords(n) {
@@ -28,7 +28,7 @@ function toWords(n) {
 }
 
 const inr = n => "₹" + Number(n).toLocaleString("en-IN");
-const calcNet = inv => (Number(inv.professional_fee) || 0) + (Number(inv.incentive) || 0) + (Number(inv.variable) || 0) - (Number(inv.tds) || 0) + (Number(inv.reimbursement) || 0);
+const calcNet = inv => (Number(inv.professional_fee) || 0) + (Number(inv.incentive) || 0) + (Number(inv.variable) || 0) - (Number(inv.tds) || 0) - (Number(inv.other_deductions) || 0) + (Number(inv.reimbursement) || 0);
 
 function downloadCSVTemplate() {
   const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -235,6 +235,12 @@ function InvoiceDocument({ invoice, user }) {
             <td style={{ padding: "10px 0", color: C.red }}>TDS @ 10%</td>
             <td style={{ padding: "10px 0", textAlign: "right", color: C.red, ...mono }}>({(invoice.tds || 0).toLocaleString("en-IN")})</td>
           </tr>
+          {(invoice.other_deductions > 0) && (
+            <tr style={{ borderBottom: `1px solid ${C.borderLight}` }}>
+              <td style={{ padding: "10px 0", color: C.red }}>Other Deductions</td>
+              <td style={{ padding: "10px 0", textAlign: "right", color: C.red, ...mono }}>({(invoice.other_deductions || 0).toLocaleString("en-IN")})</td>
+            </tr>
+          )}
           <tr style={{ borderBottom: `1px solid ${C.borderLight}` }}>
             <td style={{ padding: "10px 0", color: C.textSecondary }}>Reimbursement</td>
             <td style={{ padding: "10px 0", textAlign: "right", ...mono }}>{(invoice.reimbursement || 0).toLocaleString("en-IN")}</td>
@@ -448,7 +454,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
   async function saveEdits() {
     setSavingEdit(true);
     try {
-      const updates = { professional_fee: Number(draft.professional_fee) || 0, incentive: Number(draft.incentive) || 0, variable: Number(draft.variable) || 0, tds: Number(draft.tds) || 0, reimbursement: Number(draft.reimbursement) || 0, working_days: Number(draft.working_days) || 0, lop_days: Number(draft.lop_days) || 0, net_payable_days: (Number(draft.working_days) || 0) - (Number(draft.lop_days) || 0) };
+      const updates = { professional_fee: Number(draft.professional_fee) || 0, incentive: Number(draft.incentive) || 0, variable: Number(draft.variable) || 0, other_deductions: Number(draft.other_deductions) || 0, tds: Number(draft.tds) || 0, reimbursement: Number(draft.reimbursement) || 0, working_days: Number(draft.working_days) || 0, lop_days: Number(draft.lop_days) || 0, net_payable_days: (Number(draft.working_days) || 0) - (Number(draft.lop_days) || 0) };
       const { error } = await supabase.from("invoices").update(updates).eq("id", draft.id);
       if (error) throw error;
       setIsEditing(false);
@@ -480,7 +486,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
         </div>
         {isEditing ? (
           <div style={{ background: C.orangeLight, padding: "16px", borderRadius: "12px", border: `1px solid ${C.orangeBorder}`, marginBottom: "24px" }}>
-            {[["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"], ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"], ["Working Days", "working_days"], ["LOP Days", "lop_days"]].map(([l, key]) => (
+            {[["Prof. Fee", "professional_fee"], ["Incentive", "incentive"], ["Variable", "variable"], ["Other Deductions", "other_deductions"], ["TDS Deducted", "tds"], ["Reimbursement", "reimbursement"], ["Working Days", "working_days"], ["LOP Days", "lop_days"]].map(([l, key]) => (
               <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <span style={{ fontSize: "11px", color: C.textSecondary, fontWeight: "500" }}>{l}</span>
                 <input type="number" value={draft[key] || ""} onChange={e => setDraft({ ...draft, [key]: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = C.orange} onBlur={e => e.target.style.borderColor = C.border} />
@@ -493,7 +499,7 @@ function InvoiceScreen({ invoice, user, onBack, onSent, onUpdate }) {
           </div>
         ) : (
           <div style={{ marginBottom: "24px" }}>
-            {[["Professional Fee", inr(draft.professional_fee || 0)], ["Incentive", inr(draft.incentive || 0)], ["Variable / Bonus", inr(draft.variable || 0)], ["TDS Deducted", `- ${inr(draft.tds || 0)}`], ["Reimbursement", inr(draft.reimbursement || 0)]].map(([l, v]) => (
+            {[["Professional Fee", inr(draft.professional_fee || 0)], ["Incentive", inr(draft.incentive || 0)], ["Variable / Bonus", inr(draft.variable || 0)], ["Other Deductions", `- ${inr(draft.other_deductions || 0)}`], ["TDS Deducted", `- ${inr(draft.tds || 0)}`], ["Reimbursement", inr(draft.reimbursement || 0)]].map(([l, v]) => (
               <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                 <span style={{ fontSize: "12px", color: C.textMuted }}>{l}</span>
                 <span style={{ fontSize: "12px", color: C.textPrimary, ...mono }}>{v}</span>
@@ -712,7 +718,7 @@ function AdminScreen() {
           <div style={{ fontSize: "12px", color: C.textSecondary, marginBottom: "20px" }}>{selectedInvoice.consultant_name}</div>
           <HR /><div style={{ height: "20px" }} />
           <Label>Breakdown</Label>
-          {[["Professional Fee", inr(selectedInvoice.professional_fee || 0)], ["Incentive", inr(selectedInvoice.incentive || 0)], ["Variable", inr(selectedInvoice.variable || 0)], ["TDS", `- ${inr(selectedInvoice.tds || 0)}`], ["Reimbursement", inr(selectedInvoice.reimbursement || 0)]].map(([l, v]) => (
+          {[["Professional Fee", inr(selectedInvoice.professional_fee || 0)], ["Incentive", inr(selectedInvoice.incentive || 0)], ["Variable", inr(selectedInvoice.variable || 0)], ["Other Deductions", `- ${inr(selectedInvoice.other_deductions || 0)}`], ["TDS", `- ${inr(selectedInvoice.tds || 0)}`], ["Reimbursement", inr(selectedInvoice.reimbursement || 0)]].map(([l, v]) => (
             <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
               <span style={{ fontSize: "12px", color: C.textMuted }}>{l}</span>
               <span style={{ fontSize: "12px", ...mono }}>{v}</span>
@@ -781,8 +787,8 @@ function AdminScreen() {
                 </thead>
                 <tbody>
                   {result.rows.map((row, i) => {
-                    const fee = +row.professional_fee || 0, inc = +row.incentive || 0, vari = +row.variable || 0, tds = +row.tds || 0, reimb = +row.reimbursement || 0;
-                    const net = fee + inc + vari - tds + reimb;
+                    const fee = +row.professional_fee || 0, inc = +row.incentive || 0, vari = +row.variable || 0, tds = +row.tds || 0, other = +row.other_deductions || 0, reimb = +row.reimbursement || 0;
+                    const net = fee + inc + vari - tds - other + reimb;
                     return (
                       <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
                         <td style={{ ...tdStyle, ...mono, color: C.orange, fontWeight: "600" }}>{row.consultant_id}</td>
@@ -808,12 +814,13 @@ function AdminScreen() {
             </div>
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px 14px", overflowX: "auto" }}>
               <code style={{ fontSize: "11px", color: C.textSecondary, ...mono, whiteSpace: "nowrap" }}>
-                consultant_id, email, pan, gstin, invoice_no, billing_period, professional_fee, incentive, variable, tds, reimbursement, total_days, working_days, lop_days, net_payable_days, bank_beneficiary, bank_name, bank_account, bank_ifsc
+                invoice_no, billing_period, gstin, consultant_id, consultant_name, pan, professional_fee, incentive, variable, total_amount, tds, other_deductions, reimbursement, net_payable, total_days, working_days, lop_days, net_payable_days, consultant_email
               </code>
             </div>
             <div style={{ marginTop: "12px", fontSize: "11px", color: C.textMuted, lineHeight: "1.7" }}>
-              <strong>Required:</strong> consultant_id, email, pan, invoice_no, billing_period, professional_fee, tds, total_days, working_days, net_payable_days.<br />
-              <strong>Optional:</strong> gstin, incentive, variable, reimbursement, lop_days, bank columns.<br />
+              <strong>Required:</strong> consultant_id, consultant_name, consultant_email, pan, invoice_no, billing_period, professional_fee, tds, total_days, working_days, net_payable_days.<br />
+              <strong>Optional:</strong> gstin, incentive, variable, other_deductions, reimbursement, lop_days.<br />
+              total_amount and net_payable are informational — they are computed from the individual components.<br />
               Consultant profiles are created/updated automatically from the CSV — consultants just sign in and send.
             </div>
           </div>

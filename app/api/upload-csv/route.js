@@ -1,8 +1,10 @@
 // app/api/upload-csv/route.js
 // Admin-only. Parses CSV, upserts consultant profiles AND invoice records.
-// CSV must include: consultant_id, email, pan, invoice_no, billing_period,
-// professional_fee, tds, total_days, working_days, net_payable_days.
-// Optional: gstin, incentive, variable, reimbursement, lop_days, bank columns.
+// CSV columns (in order): invoice_no, billing_period, gstin(optional), consultant_id,
+// consultant_name, pan, professional_fee, incentive, variable/bonus/referral,
+// total_amount, tds, other_deductions, reimbursement, net_payable,
+// total_days, working_days, lop_days, net_payable_days, consultant_email.
+// total_amount and net_payable are informational — computed from components.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -14,10 +16,20 @@ const supabaseAdmin = createClient(
 );
 
 const REQUIRED_COLUMNS = [
-  "consultant_id", "email", "pan",
+  "consultant_id", "consultant_email", "consultant_name", "pan",
   "invoice_no", "billing_period",
   "professional_fee", "tds", "total_days", "working_days", "net_payable_days",
 ];
+
+// Map normalized CSV header names → internal field names
+const COLUMN_ALIASES = {
+  // "Variable / Bonus / Referral" normalizes to this
+  variable_bonus_referral: "variable",
+  // "consultant_email" maps to internal "email" field
+  consultant_email: "email",
+  // strip informational-only columns (computed from components)
+  // total_amount and net_payable are accepted but ignored
+};
 
 export async function POST(request) {
   try {
@@ -31,9 +43,20 @@ export async function POST(request) {
     const lines = text.trim().split("\n").filter(l => l.trim());
     if (lines.length < 2) return NextResponse.json({ error: "CSV must have a header row and at least one data row" }, { status: 400 });
 
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/ /g, "_"));
+    const rawHeaders = lines[0].split(",").map(h =>
+      h.trim().toLowerCase()
+        .replace(/\s*\([^)]*\)/g, "")   // strip (optional), (required), etc.
+        .replace(/[^a-z0-9]+/g, "_")    // non-alphanumeric → underscore
+        .replace(/^_|_$/g, "")          // trim leading/trailing underscores
+    );
+    const headers = rawHeaders.map(h => COLUMN_ALIASES[h] ?? h);
 
-    const missingCols = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+    // REQUIRED_COLUMNS are post-alias internal names; headers are already aliased
+    const missingCols = REQUIRED_COLUMNS.filter(col => {
+      // consultant_email aliases to "email" in headers
+      const check = col === "consultant_email" ? "email" : col;
+      return !headers.includes(check);
+    });
     if (missingCols.length > 0) {
       return NextResponse.json({ error: `Missing required columns: ${missingCols.join(", ")}` }, { status: 400 });
     }
@@ -45,19 +68,17 @@ export async function POST(request) {
       return {
         // Consultant profile fields
         consultant_id: row.consultant_id,
-        email: row.email,
+        email: row.email,              // aliased from consultant_email
+        name: row.consultant_name || null,
         pan: row.pan,
         gstin: row.gstin || null,
-        bank_beneficiary: row.bank_beneficiary || null,
-        bank_name: row.bank_name || null,
-        bank_account: row.bank_account || null,
-        bank_ifsc: row.bank_ifsc || null,
         // Invoice fields
         invoice_no: row.invoice_no,
         billing_period: row.billing_period,
         professional_fee: parseFloat(row.professional_fee) || 0,
         incentive: parseFloat(row.incentive) || 0,
-        variable: parseFloat(row.variable) || 0,
+        variable: parseFloat(row.variable) || 0,  // aliased from variable_bonus_referral
+        other_deductions: parseFloat(row.other_deductions) || 0,
         tds: parseFloat(row.tds) || 0,
         reimbursement: parseFloat(row.reimbursement) || 0,
         total_days: parseInt(row.total_days) || 0,
@@ -80,12 +101,9 @@ export async function POST(request) {
     const consultantUpserts = rows.map(r => ({
       consultant_id: r.consultant_id,
       email: r.email,
+      name: r.name,
       pan: r.pan,
       gstin: r.gstin,
-      bank_beneficiary: r.bank_beneficiary,
-      bank_name: r.bank_name,
-      bank_account: r.bank_account,
-      bank_ifsc: r.bank_ifsc,
     }));
 
     for (const c of consultantUpserts) {
@@ -99,15 +117,12 @@ export async function POST(request) {
         const isPlaceholder = existing.email.startsWith("pending-") &&
           existing.email.endsWith("@placeholder.internal");
 
-        // Never overwrite a real email — only update profile/bank details.
+        // Never overwrite a real email — only update profile details.
         // If it's a placeholder, also update the email to the real one from CSV.
         const updateFields = {
           pan: c.pan,
           gstin: c.gstin,
-          bank_beneficiary: c.bank_beneficiary,
-          bank_name: c.bank_name,
-          bank_account: c.bank_account,
-          bank_ifsc: c.bank_ifsc,
+          ...(c.name && { name: c.name }),
           ...(isPlaceholder && { email: c.email }),
         };
 
@@ -132,10 +147,7 @@ export async function POST(request) {
               consultant_id: c.consultant_id,
               pan: c.pan,
               gstin: c.gstin,
-              bank_beneficiary: c.bank_beneficiary,
-              bank_name: c.bank_name,
-              bank_account: c.bank_account,
-              bank_ifsc: c.bank_ifsc,
+              ...(c.name && { name: c.name }),
             })
             .eq("email", c.email);
         } else {
@@ -147,11 +159,7 @@ export async function POST(request) {
               email: c.email,
               pan: c.pan,
               gstin: c.gstin,
-              bank_beneficiary: c.bank_beneficiary,
-              bank_name: c.bank_name,
-              bank_account: c.bank_account,
-              bank_ifsc: c.bank_ifsc,
-              name: c.email.split("@")[0],
+              name: c.name || c.email.split("@")[0],
             });
         }
       }
@@ -165,17 +173,13 @@ export async function POST(request) {
       professional_fee: r.professional_fee,
       incentive: r.incentive,
       variable: r.variable,
+      other_deductions: r.other_deductions,
       tds: r.tds,
       reimbursement: r.reimbursement,
       total_days: r.total_days,
       working_days: r.working_days,
       lop_days: r.lop_days,
       net_payable_days: r.net_payable_days,
-      // Bank details on the invoice itself (snapshot at time of upload)
-      bank_beneficiary: r.bank_beneficiary,
-      bank_name: r.bank_name,
-      bank_account: r.bank_account,
-      bank_ifsc: r.bank_ifsc,
       status: "pending",
     }));
 
